@@ -17,7 +17,11 @@ COMMON_SOURCES= $(COMMON_ROOT)/source
 COMMON_INCLUDES= $(COMMON_ROOT)/include
 COMMON_BUILD= $(BUILD)/common
 COMMON_SOURCE_FILES= zeropage.s \
-			syscalls.s
+			acia.s \
+			kbd.s \
+			console.s \
+			utils.s \
+			via.s
 COMMON_OBJECTS=$(COMMON_SOURCE_FILES:%.s=$(COMMON_BUILD)/%.o)
 COMMON_LIB=$(COMMON_BUILD)/common.lib
 
