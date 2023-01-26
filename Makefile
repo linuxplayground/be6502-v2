@@ -17,11 +17,15 @@ COMMON_SOURCES= $(COMMON_ROOT)/source
 COMMON_INCLUDES= $(COMMON_ROOT)/include
 COMMON_BUILD= $(BUILD)/common
 COMMON_SOURCE_FILES= zeropage.s \
+			sysram.s \
+			syscalls.s \
 			acia.s \
 			kbd.s \
 			console.s \
 			utils.s \
-			via.s
+			via.s \
+			wozmon.s \
+			xmodem.s
 COMMON_OBJECTS=$(COMMON_SOURCE_FILES:%.s=$(COMMON_BUILD)/%.o)
 COMMON_LIB=$(COMMON_BUILD)/common.lib
 
@@ -44,7 +48,7 @@ LOAD_COMMON_OBJECTS=$(LOAD_COMMON_SOURCE_FILES:%.s=$(LOAD_BUILD)/%.load.o)
 LOAD_COMMON_LIB=$(LOAD_BUILD)/load.lib
 
 LOAD_SOURCES=$(LOAD_ROOT)
-LOAD_SOURCE_FILES=
+LOAD_SOURCE_FILES= 01_xmodem_test.s
 LOAD_OBJECTS=$(LOAD_SOURCE_FILES:%.s=$(LOAD_BUILD)/%.o)
 LOAD_RAW=$(LOAD_SOURCE_FILES:%.s=$(LOAD_BUILD)/%.raw)
 LOAD_BINARIES=$(LOAD_SOURCE_FILES:%.s=$(LOAD_BUILD)/%.bin)

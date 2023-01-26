@@ -4,3 +4,21 @@
         .globalzp kbd_flags
         .globalzp str_ptr
         .globalzp tmp1
+        .globalzp crc
+        .globalzp crch
+        .globalzp ptr
+        .globalzp ptrh
+        .globalzp blkno
+        .globalzp retry
+        .globalzp retry2
+        .globalzp bflag
+        .globalzp XAML
+        .globalzp XAMH
+        .globalzp STL
+        .globalzp STH
+        .globalzp L  
+        .globalzp H
+        .globalzp YSAV
+        .globalzp MODE
+        .globalzp MSGL
+        .globalzp MSGH

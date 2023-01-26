@@ -1,8 +1,16 @@
-        ;.include "acia.inc"
+        .include "console.inc"
         
-        ; acia
-        ;.export _syscall__acia_read_byte
+        ; console
+        .export _syscall__con_in
+        .export _syscall__con_out
+        .export _syscall__con_print
+        .export _syscall__con_nl
+        .export _syscall__con_prompt
         
         .segment "SYSCALLS"
-; acia
-;_syscall__acia_read_byte:               .word _acia_read_byte
+; console
+_syscall__con_in:               .word _con_in
+_syscall__con_out:              .word _con_out
+_syscall__con_print:            .word _con_print
+_syscall__con_nl:               .word _con_nl
+_syscall__con_prompt:           .word _con_prompt

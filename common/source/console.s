@@ -1,12 +1,15 @@
         .include "sysram.inc"
         .include "acia.inc"
+        .include "console_macros.inc"
         .include "zeropage.inc"
 
         .export _con_init
         .export _con_in
         .export _con_out
+        .export _con_prompt
+        .export _con_nl
         .export _con_print
-        .export _con_new_line
+        .export _con_nl
 
         .code
 
@@ -34,6 +37,14 @@ _con_out:
         jsr _acia_write_byte
         rts
 
+_con_prompt:
+        mac_con_print str_prompt
+        rts
+
+_con_nl:
+        mac_con_print str_nl
+        rts
+
 _con_print:
         ldy #0
 @loop:
@@ -45,9 +56,7 @@ _con_print:
 @return:
         rts
 
-_con_new_line:
-        lda #$0d
-        jsr _acia_read_byte
-        lda #$0a
-        jsr _acia_write_byte
-        rts
+        .rodata
+str_prompt:
+        .asciiz "> "
+str_nl: .byte $0d,$0a,$00
