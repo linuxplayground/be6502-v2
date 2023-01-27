@@ -40,6 +40,9 @@ vdp_cur_h= $e3
 vdp_x= $e4
 vdp_y= $e5
 screen= $0600
+linebuf = $0900
+scroll_read= $0921
+scroll_write= $0922
 
 
         .code
@@ -89,20 +92,24 @@ _vdp_out:
         lda vdp_x
         cmp #32
         bne @return
-        stz vdp_x
         inc vdp_y
         lda vdp_y
         cmp #24
         bne @return
+        jsr _vdp_scroll
         lda #23
         sta vdp_y
+        stz vdp_x
         jmp @return
 @cr:
-        lda vdp_y
-        cmp #23
-        beq @return
         inc vdp_y
-        stz vdp_x
+        lda vdp_y
+        cmp #24
+        bne :+
+        jsr _vdp_scroll
+        lda #23
+        sta vdp_y
+:       stz vdp_x
         jmp @return
 
 @bs:
@@ -167,6 +174,71 @@ _vdp_calc_cursor_addr:
         ply
         plx
         pla
+        rts
+
+; scroll up one line.
+_vdp_scroll:
+        lda #0
+        sta scroll_write
+        lda #1
+        sta scroll_read
+@lp:
+        jsr scroll_buffer_in
+        jsr scroll_buffer_out
+        inc scroll_read
+        inc scroll_write
+        lda scroll_read
+        cmp #24
+        bne @lp
+        jsr scroll_insert_empty_line
+        lda #32
+        sta vdp_y
+        stz vdp_x
+        jsr _vdp_calc_cursor_addr
+        rts
+
+scroll_insert_empty_line:
+        lda #23
+        sta vdp_y
+        stz vdp_x
+        jsr _vdp_calc_cursor_addr
+        lda #' '
+        ldy #0
+@lp:
+        sta (vdp_cur_l),y
+        iny
+        cpy #32
+        bne @lp
+        rts
+
+scroll_buffer_in:
+        lda scroll_read
+        sta vdp_y
+        stz vdp_x
+        jsr _vdp_calc_cursor_addr
+
+        ldy #0
+@lp:
+        lda (vdp_cur_l),y
+        sta linebuf,y
+        iny
+        cpy #32
+        bne @lp
+        rts
+
+scroll_buffer_out:
+        lda scroll_write
+        sta vdp_y
+        stz vdp_x
+        jsr _vdp_calc_cursor_addr
+
+        ldy #0
+@lp:
+        lda linebuf,y
+        sta (vdp_cur_l),y
+        iny
+        cpy #32
+        bne @lp
         rts
 
 _vdp_reset:
