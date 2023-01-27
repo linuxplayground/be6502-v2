@@ -27,7 +27,7 @@ VDP_REG                 = __TMS_START__ + $01   ; TMS Mode 1
 .endmacro
 
 .macro vdp_delay_fast
-        .repeat 4
+        .repeat 2
         nop
         .endrepeat
 .endmacro
@@ -37,6 +37,8 @@ vdp_l= $e0
 vdp_h= $e1
 vdp_cur_l= $e2
 vdp_cur_h= $e3
+vdp_x= $e4
+vdp_y= $e5
 screen= $0600
 
 
@@ -52,6 +54,8 @@ main:
         lda #>screen
         sta vdp_cur_h
 
+        stz vdp_x
+        stz vdp_y
 loop:
         jsr _con_in
         bcc @flush
@@ -59,11 +63,9 @@ loop:
         beq exit
         ldy #0
 @out:
-        sta (vdp_cur_l),y
-        inc vdp_cur_l
-        bne @flush
-        inc vdp_cur_h
+        jsr _vdp_out
 @flush:
+        jsr _vdp_wait
         jsr _vdp_flush
         jmp loop
 exit:
@@ -73,6 +75,100 @@ exit:
 ;=============================================================================
 ;     VDP FUNCTIONS
 ;=============================================================================
+_vdp_out:
+        cmp #$0d
+        beq @cr
+        cmp #$0a
+        beq @cr
+        cmp #$08
+        beq @bs
+
+        jsr _vdp_calc_cursor_addr
+        jsr _vdp_put
+        inc vdp_x
+        lda vdp_x
+        cmp #32
+        bne @return
+        stz vdp_x
+        inc vdp_y
+        lda vdp_y
+        cmp #24
+        bne @return
+        lda #23
+        sta vdp_y
+        jmp @return
+@cr:
+        lda vdp_y
+        cmp #23
+        beq @return
+        inc vdp_y
+        stz vdp_x
+        jmp @return
+
+@bs:
+        lda vdp_x
+        beq @return
+        dec vdp_x
+        jsr _vdp_calc_cursor_addr
+        lda #' '
+        jsr _vdp_put
+
+
+@return:
+        rts
+
+_vdp_home:
+        stz vdp_x
+        stz vdp_y
+        jsr _vdp_calc_cursor_addr
+        rts
+
+_vdp_put:
+        sta (vdp_cur_l),y
+        rts
+@flush:
+        jsr _vdp_wait
+        jsr _vdp_flush
+        rts
+
+; sets the vdp_cur_l pointer to a value based on y x 32 + x
+; inputs: x register and y register.
+_vdp_calc_cursor_addr:
+        pha
+        phx
+        phy
+        lda #<screen
+        sta vdp_cur_l
+        lda #>screen
+        sta vdp_cur_h
+@mul32:
+        lda vdp_cur_l
+        ldx vdp_x
+        ldy vdp_y
+@mul_32_lp:
+        cpy #$00
+        beq @mul_32_add_x
+        clc
+        adc #32
+        sta vdp_cur_l
+        bcc @mul_32_continue
+        inc vdp_cur_h
+@mul_32_continue:
+        dey
+        bne @mul_32_lp
+@mul_32_add_x:
+        clc
+        txa
+        adc vdp_cur_l
+        sta vdp_cur_l
+        bcc @mul_32_done
+        inc vdp_cur_h
+@mul_32_done:
+        ply
+        plx
+        pla
+        rts
+
 _vdp_reset:
         jsr vdp_clear_ram
         jsr vdp_set_graphics_1_mode
@@ -203,15 +299,17 @@ vdp_init_colors:
         bne @ic_1
         rts
 
-; This function is designed to flush on the next vertical pulse from the VDP
-_vdp_flush:
+_vdp_wait:
+        vdp_delay_slow
         lda VDP_REG
         and #$80
-        beq _vdp_flush
+        beq _vdp_wait
+        rts
 
+; This function is designed to flush on the next vertical pulse from the VDP
+_vdp_flush:
         lda #<VDP_NAME_TABLE    ; set name table start address on vdp write register
         sta VDP_REG
-        vdp_delay_fast
         lda #>VDP_NAME_TABLE
         ora #$40
         sta VDP_REG
@@ -220,19 +318,18 @@ _vdp_flush:
         sta vdp_l
         lda #>screen
         sta vdp_h
-
+        ldx #3
+@lp1:
         ldy #0
-@lp:
+@lp2:
         lda (vdp_l),y
         sta VDP_VRAM
-        vdp_delay_fast
-        inc vdp_l
-        bne @lp
+        nop
+        iny
+        bne @lp2
         inc vdp_h
-        lda vdp_h
-        cmp #$09
-        beq @exit
-        jmp @lp
+        dex
+        bne @lp1
 @exit:
         rts
         
@@ -245,7 +342,7 @@ str_nl: .byte $0d,$0a,$00
 
 vdp_graphics_1_inits:
 reg_0: .byte $00                ; r0
-reg_1: .byte $E0                ; r1 16kb ram + M1, interrupts disabled
+reg_1: .byte $E0                ; r1 16kb ram + M1, interrupts enabled
 reg_2: .byte $05                ; r2 name table at 0x1400
 reg_3: .byte $80                ; r3 color start 0x2000
 reg_4: .byte $01                ; r4 pattern generator start at 0x800

@@ -58,9 +58,6 @@ _kbd_init:
 
 ; keyboard handler ISR
 _kbd_isr:
-        pha
-        phx
-
         lda kbd_flags
         and #(KBD_R_FLAG)       ; check if we are releasing a key
         beq @read_key           ; otherwise read the key
@@ -112,8 +109,6 @@ _kbd_isr:
         inc con_w_idx
         jmp @exit
 @break:
-        plx
-        pla
         jsr _wozmon             ; if we hit the pause key - go straight into wozmon
         jmp $8000               ; hard reset
 
@@ -127,8 +122,6 @@ _kbd_isr:
         ora #(KBD_R_FLAG)
         sta kbd_flags
 @exit:
-        plx
-        pla
         rts
 
 ; Function keys are ASCII $81 to $8C (F1 - F12)

@@ -36,3 +36,7 @@
     - updated to use console routines for IO
 - ehbasic
     - updated to use console routines for IO
+
+## VDP DEVELOPMENT
+
+[ ] Console out, must flush display.  This because I can't get VDP interrupts to work nicely wiht the keyboard interrupt routine.

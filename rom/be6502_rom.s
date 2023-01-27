@@ -14,7 +14,7 @@ cold_boot:
         sei
         ldx #$ff
         txs
-        
+
         jsr _acia_init
         jsr _con_init
         jsr _kbd_init
@@ -82,6 +82,7 @@ irq:
         ldx con_w_idx
         sta con_buf,x
         inc con_w_idx
+        jmp @exit_irq
 @kbd_irq:
         bit VIA_IFR
         bpl @usr_irq
@@ -91,7 +92,6 @@ irq:
         lda usr_irq + 1
         beq @exit_irq
         jmp (usr_irq)
-
 @exit_irq:
         ply
         plx
