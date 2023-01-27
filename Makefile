@@ -24,6 +24,7 @@ COMMON_SOURCE_FILES= zeropage.s \
 			console.s \
 			utils.s \
 			via.s \
+			vdp.s \
 			wozmon.s \
 			xmodem.s
 COMMON_OBJECTS=$(COMMON_SOURCE_FILES:%.s=$(COMMON_BUILD)/%.o)

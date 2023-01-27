@@ -4,4 +4,14 @@
         .forceimport _syscall__con_print
         .forceimport _syscall__con_prompt
         .forceimport _syscall__con_nl
+        ; wozmon
         .forceimport _syscall__prbyte
+        ; vdp
+        .forceimport _syscall__vdp_reset
+        .forceimport _syscall__vdp_clear_screen
+        .forceimport _syscall__vdp_home
+        .forceimport _syscall__vdp_wait
+        .forceimport _syscall__vdp_flush
+        .forceimport _syscall__vdp_out
+        .forceimport _syscall__vdp_put
+        .forceimport _syscall__vdp_scroll
