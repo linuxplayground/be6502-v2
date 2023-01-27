@@ -19,19 +19,20 @@
 
 ## Interrupts
 
-- Keyboard interrupt
-- ACIA interrupt
+[x] Keyboard interrupt
+[x] ACIA interrupt
 
 ## Build objectives
 
-- Low level routines for ACIA - feed into console buffer
-- Virtual console routines
-   - output to ACIA via ACIA routines
+[x] Low level routines for ACIA - feed into console buffer
+[x] Virtual console routines
+   [x] output to ACIA via ACIA routines
    - output to VDP via VDP routines
-- Low level keyboard routines - feed into console buffer
-- basic monitor
+[x]] Low level keyboard routines - feed into console buffer
+[x] basic monitor
     - driven by console routines
-- wozmon
+[x] Xmodem
+[x] wozmon
     - updated to use console routines for IO
 - ehbasic
     - updated to use console routines for IO

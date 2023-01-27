@@ -13,8 +13,8 @@ RESET:   CLD             ;Clear decimal arithmetic mode.
          CLI
          LDA #$0D
          JSR ECHO        ;* New line.
-        ;  LDA #$0A
-        ;  JSR ECHO
+         LDA #$0A
+         JSR ECHO
          LDA #<MSG1
          STA MSGL
          LDA #>MSG1
@@ -22,8 +22,8 @@ RESET:   CLD             ;Clear decimal arithmetic mode.
          JSR SHWMSG      ;* Show Welcome.
          LDA #$0D
          JSR ECHO        ;* New line.
-        ;  LDA #$0A
-        ;  JSR ECHO
+         LDA #$0A
+         JSR ECHO
 SOFTRESET:   LDA #$9B     ;* Auto escape.
 NOTCR:       CMP #$88     ;"<-"? * Note this was chaged to $88 which is the back space key.
             BEQ BACKSPACE   ;Yes.

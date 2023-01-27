@@ -6,6 +6,7 @@
         .export _con_print
         .export _con_prompt
         .export _con_nl
+        .export _prbyte
         
         .code
 
@@ -15,3 +16,5 @@ _con_out:                       jmp (_syscall__con_out)
 _con_print:                     jmp (_syscall__con_print)
 _con_prompt:                    jmp (_syscall__con_prompt)
 _con_nl:                        jmp (_syscall__con_nl)
+;wozmon
+_prbyte:                        jmp (_syscall__prbyte)

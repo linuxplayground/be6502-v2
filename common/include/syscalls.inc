@@ -4,3 +4,4 @@
         .forceimport _syscall__con_print
         .forceimport _syscall__con_prompt
         .forceimport _syscall__con_nl
+        .forceimport _syscall__prbyte

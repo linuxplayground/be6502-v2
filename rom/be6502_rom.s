@@ -12,6 +12,9 @@
         .code
 cold_boot:
         sei
+        ldx #$ff
+        txs
+        
         jsr _acia_init
         jsr _con_init
         jsr _kbd_init
@@ -36,7 +39,7 @@ wait_for_input:
         beq run_help
         cmp #'c'
         beq cold_boot
-        cmp #$0d                        ; CR
+        cmp #$0a                        ; CR
         beq new_line
         jsr _con_out
         jmp prompt

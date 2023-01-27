@@ -59,4 +59,5 @@ _con_print:
         .rodata
 str_prompt:
         .asciiz "> "
-str_nl: .byte $0d,$0a,$00
+
+str_nl: .byte $0a,$0d,$00

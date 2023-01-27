@@ -2,6 +2,7 @@
         .include "zeropage.inc"
         .include "sysram.inc"
         .include "utils.inc"
+        .include "wozmon.inc"
 
         .export _kbd_init
         .export _kbd_isr
@@ -89,6 +90,12 @@ _kbd_isr:
         cmp #$59                ; right shift
         beq @shift_down
 
+@filter:
+        cmp #$E0
+        beq @exit
+        cmp #$E1                ; this is the only key that starts with E1
+        beq @break
+
         tax
         lda kbd_flags
         and #(KBD_S_FLAG)       ; check if shif it currently down
@@ -101,9 +108,15 @@ _kbd_isr:
         ; fall through
 @push_key:
         ldx con_w_idx           ; use the write pointer to save the ascii
-        sta con_buf,x        ; char into the buffer
+        sta con_buf,x           ; char into the buffer
         inc con_w_idx
         jmp @exit
+@break:
+        plx
+        pla
+        jsr _wozmon             ; if we hit the pause key - go straight into wozmon
+        jmp $8000               ; hard reset
+
 @shift_down:
         lda kbd_flags
         ora #(KBD_S_FLAG)
@@ -118,37 +131,332 @@ _kbd_isr:
         pla
         rts
 
+; Function keys are ASCII $81 to $8C (F1 - F12)
+; ALT = $90
+; SHIFT (L + R) = $91
+; CTRL (L + R) = $92
+; CAPS LOCK = $93
+; END = $94
+; HOME = $95
+; INSERT = $96
+; PRINTSCR = $97
+; PAGE DOWN = $98
+; PAGE UP = $99
+; SCROLL LOCK = $9A
+
+; LEFT = $A1
+; RIGHT = $A2
+; UP = $A3
+; DOWN = $A4
+
+; PAUSE = IMMEDIATE ON E1 SCAN CODE
+
 keymap_l:
-    .byte "?????",$81,$82,$8c,"?",$8a,"??? `?" ; 00-0F
-    .byte "?????q1???zsaw2?" ; 10-1F
-    .byte "?cxde43?? vftr5?" ; 20-2F
-    .byte "?nbhgy6???mju78?" ; 30-3F
-    .byte "?,kio09??./l;p-?" ; 40-4F
-    .byte "??'?[=????",$0d,"]?\??" ; 50-5F
-    .byte "??????",$08,"??1?47???" ; 60-6F
-    .byte "0.2568",$1b,"?",$8b,"+3-*9??" ; 70-7F
-    .byte "????????????????" ; 80-8F
-    .byte "????????????????" ; 90-9F
-    .byte "????????????????" ; A0-AF
-    .byte "????????????????" ; B0-BF
-    .byte "????????????????" ; C0-CF
-    .byte "????????????????" ; D0-DF
-    .byte "????????????????" ; E0-EF
-    .byte "????????????????" ; F0-FF
+        ;   ASCII       SCAN CODE
+        .byte $00       ; 00 
+        .byte $89       ; 01 F9
+        .byte $00       ; 02
+        .byte $85       ; 03 F5
+        .byte $83       ; 04 F3
+        .byte $81       ; 05 F1
+        .byte $82       ; 06 F2
+        .byte $8C       ; 07 F12
+        .byte $00       ; 08
+        .byte $8A       ; 09 F10
+        .byte $88       ; 0A F8
+        .byte $86       ; 0B F6
+        .byte $84       ; 0C F4
+        .byte $09       ; 0D TAB
+        .byte "`"       ; 0E BACKTICK
+        .byte $00       ; 0F
+
+        .byte $00       ; 10
+        .byte $90       ; 11 LEFT ALT / E0 + RIGHT ALT
+        .byte $91       ; 12 LEFT SHIFT
+        .byte $00       ; 13
+        .byte $92       ; 14 LEFT CONTROL / E0 + RIGHT CONTROL
+        .byte "q"       ; 15 Q
+        .byte "1"       ; 16 1
+        .byte $00       ; 17 
+        .byte $00       ; 18
+        .byte $00       ; 19
+        .byte "z"       ; 1A Z
+        .byte "s"       ; 1B S
+        .byte "a"       ; 1C A
+        .byte "w"       ; 1D W
+        .byte "2"       ; 1E 2
+        .byte $00       ; 1F 
+
+        .byte $00       ; 20
+        .byte "c"       ; 21 C
+        .byte "x"       ; 22 X
+        .byte "d"       ; 23 D
+        .byte "e"       ; 24 E
+        .byte "4"       ; 25 4
+        .byte "3"       ; 26 3
+        .byte $00       ; 27 
+        .byte $00       ; 28
+        .byte " "       ; 29 SPACE
+        .byte "v"       ; 2A V
+        .byte "f"       ; 2B F
+        .byte "t"       ; 2C T
+        .byte "r"       ; 2D R
+        .byte "5"       ; 2E 5
+        .byte $00       ; 2F 
+
+        .byte $00       ; 30 
+        .byte "n"       ; 31 N
+        .byte "b"       ; 32 B
+        .byte "h"       ; 33 H
+        .byte "g"       ; 34 G
+        .byte "y"       ; 35 Y
+        .byte "6"       ; 36 6
+        .byte $00       ; 37 
+        .byte $00       ; 38
+        .byte $00       ; 39
+        .byte "m"       ; 3A M
+        .byte "j"       ; 3B J
+        .byte "u"       ; 3C U
+        .byte "7"       ; 3D 7
+        .byte "8"       ; 3E 8
+        .byte $00       ; 3F 
+
+        .byte $00       ; 40
+        .byte ","       ; 41 ,
+        .byte "k"       ; 42 K
+        .byte "i"       ; 43 I
+        .byte "o"       ; 44 O
+        .byte "0"       ; 45 0
+        .byte "9"       ; 46 9
+        .byte $00       ; 47 
+        .byte $00       ; 48
+        .byte "."       ; 49 .
+        .byte "/"       ; 4A /
+        .byte "l"       ; 4B L
+        .byte ";"       ; 4C ;
+        .byte "p"       ; 4D P
+        .byte "-"       ; 4E -
+        .byte $00       ; 4F 
+
+        .byte $00       ; 50
+        .byte $00       ; 51
+        .byte "'"       ; 52 '
+        .byte $00       ; 53 
+        .byte "["       ; 54 [
+        .byte "="       ; 55 =
+        .byte $00       ; 56 
+        .byte $00       ; 57
+        .byte $93       ; 58 CAPS LOCK
+        .byte $92       ; 59 RIGHT SHIFT
+        .byte $0D       ; 5A ENTER
+        .byte "]"       ; 5B ]
+        .byte $00       ; 5C 
+        .byte $5C       ; 5D \
+        .byte $00       ; 5E 
+        .byte $00       ; 5F
+
+        .byte $00       ; 60
+        .byte $00       ; 61
+        .byte $00       ; 62
+        .byte $00       ; 63
+        .byte $00       ; 64
+        .byte $00       ; 65
+        .byte $08       ; 66 BACK SPACE
+        .byte $00       ; 67 
+        .byte $00       ; 68
+        .byte $94       ; 69 KEYPAD 1 / EO + END
+        .byte $00       ; 6A 
+        .byte $A1       ; 6B KEYPAD 4 / E0 + CURSOR LEFT
+        .byte $95       ; 6C KEYPAD 7 / E0 + HOME
+        .byte $00       ; 6D 
+        .byte $00       ; 6E
+        .byte $00       ; 6F
+        
+        .byte $96       ; 70 KEYPAD 0 / E0 + INSERT
+        .byte $7F       ; 71 KEYPAD . / E0 + DELETE
+        .byte $A4       ; 72 KEYPAD 2 / E0 + CURSOR DOWN
+        .byte $00       ; 73 KEYPAD 5
+        .byte $A2       ; 74 KEYPAD 6 / E0 + CURSOR RIGHT
+        .byte $A3       ; 75 KEYPAD 8 / E0 + CURSOR UP
+        .byte $1B       ; 76 ESCAPE
+        .byte $00       ; 77 NUMLOCK 
+        .byte $8B       ; 78 F11
+        .byte $00       ; 79 KEYPAD +
+        .byte $98       ; 7A PAGE DOWN /E0 + PAGE DOWN
+        .byte $00       ; 7B KEYPAD -
+        .byte $97       ; 7C PRINT SCREEN
+        .byte $99       ; 7D KEYPAD 9 / E0 + PAGE UP
+        .byte $9A       ; 7E SCROLL LOCK
+        .byte $00       ; 7F
+
+        .byte $00       ; 80
+        .byte $00       ; 81
+        .byte $00       ; 82
+        .byte $87       ; 83 F7
+        .byte $00       ; 84
+        .byte $00       ; 85
+        .byte $00       ; 86
+        .byte $00       ; 87
+        .byte $00       ; 88
+        .byte $00       ; 89
+        .byte $00       ; 8A
+        .byte $00       ; 8B
+        .byte $00       ; 8C 
+        .byte $00       ; 8D
+        .byte $00       ; 8E
+        .byte $00       ; 8F
+
 keymap_u:
-    .byte "????????????? ~?" ; 00-0F
-    .byte "?????Q!???ZSAW@?" ; 10-1F
-    .byte "?CXDE#$?? VFTR%?" ; 20-2F
-    .byte "?NBHGY^???MJU&*?" ; 30-3F
-    .byte "?<KIO)(??>?L:P_?" ; 40-4F
-    .byte "??",$22,"?{+?????}?|??" ; 50-5F
-    .byte "?????????1?47???" ; 60-6F
-    .byte "0.2568",$80,"??+3-*9??" ; 70-7F
-    .byte "????????????????" ; 80-8F
-    .byte "????????????????" ; 90-9F
-    .byte "????????????????" ; A0-AF
-    .byte "????????????????" ; B0-BF
-    .byte "????????????????" ; C0-CF
-    .byte "????????????????" ; D0-DF
-    .byte "????????????????" ; E0-EF
-    .byte "????????????????" ; F0-FF
+        ;   ASCII       SCAN CODE
+        .byte $00       ; 00 
+        .byte $89       ; 01 F9
+        .byte $00       ; 02
+        .byte $85       ; 03 F5
+        .byte $83       ; 04 F3
+        .byte $81       ; 05 F1
+        .byte $82       ; 06 F2
+        .byte $8C       ; 07 F12
+        .byte $00       ; 08
+        .byte $8A       ; 09 F10
+        .byte $88       ; 0A F8
+        .byte $86       ; 0B F6
+        .byte $84       ; 0C F4
+        .byte $09       ; 0D TAB
+        .byte "~"       ; 0E BACKTICK
+        .byte $00       ; 0F
+
+        .byte $00       ; 10
+        .byte $90       ; 11 LEFT ALT / E0 + RIGHT ALT
+        .byte $91       ; 12 LEFT SHIFT
+        .byte $00       ; 13
+        .byte $92       ; 14 LEFT CONTROL / E0 + RIGHT CONTROL
+        .byte "Q"       ; 15 Q
+        .byte "!"       ; 16 1
+        .byte $00       ; 17 
+        .byte $00       ; 18
+        .byte $00       ; 19
+        .byte "Z"       ; 1A Z
+        .byte "S"       ; 1B S
+        .byte "A"       ; 1C A
+        .byte "W"       ; 1D W
+        .byte "@"       ; 1E 2
+        .byte $00       ; 1F 
+
+        .byte $00       ; 20
+        .byte "C"       ; 21 C
+        .byte "X"       ; 22 X
+        .byte "D"       ; 23 D
+        .byte "E"       ; 24 E
+        .byte "$"       ; 25 4
+        .byte "#"       ; 26 3
+        .byte $00       ; 27 
+        .byte $00       ; 28
+        .byte " "       ; 29 SPACE
+        .byte "V"       ; 2A V
+        .byte "F"       ; 2B F
+        .byte "T"       ; 2C T
+        .byte "R"       ; 2D R
+        .byte "%"       ; 2E 5
+        .byte $00       ; 2F 
+
+        .byte $00       ; 30 
+        .byte "N"       ; 31 N
+        .byte "B"       ; 32 B
+        .byte "H"       ; 33 H
+        .byte "G"       ; 34 G
+        .byte "Y"       ; 35 Y
+        .byte "^"       ; 36 6
+        .byte $00       ; 37 
+        .byte $00       ; 38
+        .byte $00       ; 39
+        .byte "M"       ; 3A M
+        .byte "J"       ; 3B J
+        .byte "U"       ; 3C U
+        .byte "&"       ; 3D 7
+        .byte "*"       ; 3E 8
+        .byte $00       ; 3F 
+
+        .byte $00       ; 40
+        .byte "<"       ; 41 ,
+        .byte "K"       ; 42 K
+        .byte "I"       ; 43 I
+        .byte "O"       ; 44 O
+        .byte ")"       ; 45 0
+        .byte "("       ; 46 9
+        .byte $00       ; 47 
+        .byte $00       ; 48
+        .byte ">"       ; 49 .
+        .byte "?"       ; 4A /
+        .byte "L"       ; 4B L
+        .byte ":"       ; 4C ;
+        .byte "P"       ; 4D P
+        .byte "_"       ; 4E -
+        .byte $00       ; 4F 
+
+        .byte $00       ; 50
+        .byte $00       ; 51
+        .byte $22       ; 52 ' (")
+        .byte $00       ; 53 
+        .byte "{"       ; 54 [
+        .byte "+"       ; 55 =
+        .byte $00       ; 56 
+        .byte $00       ; 57
+        .byte $93       ; 58 CAPS LOCK
+        .byte $92       ; 59 RIGHT SHIFT
+        .byte $0D       ; 5A ENTER
+        .byte "}"       ; 5B ]
+        .byte $00       ; 5C 
+        .byte "|"       ; 5D \
+        .byte $00       ; 5E 
+        .byte $00       ; 5F
+
+        .byte $00       ; 60
+        .byte $00       ; 61
+        .byte $00       ; 62
+        .byte $00       ; 63
+        .byte $00       ; 64
+        .byte $00       ; 65
+        .byte $08       ; 66 BACK SPACE
+        .byte $00       ; 67 
+        .byte $00       ; 68
+        .byte $94       ; 69 KEYPAD 1 / EO + END
+        .byte $00       ; 6A 
+        .byte $A1       ; 6B KEYPAD 4 / E0 + CURSOR LEFT
+        .byte $95       ; 6C KEYPAD 7 / E0 + HOME
+        .byte $00       ; 6D 
+        .byte $00       ; 6E
+        .byte $00       ; 6F
+        
+        .byte $96       ; 70 KEYPAD 0 / E0 + INSERT
+        .byte $7F       ; 71 KEYPAD . / E0 + DELETE
+        .byte $A4       ; 72 KEYPAD 2 / E0 + CURSOR DOWN
+        .byte $00       ; 73 KEYPAD 5
+        .byte $A2       ; 74 KEYPAD 6 / E0 + CURSOR RIGHT
+        .byte $A3       ; 75 KEYPAD 8 / E0 + CURSOR UP
+        .byte $1B       ; 76 ESCAPE
+        .byte $00       ; 77 NUMLOCK 
+        .byte $8B       ; 78 F11
+        .byte $00       ; 79 KEYPAD +
+        .byte $98       ; 7A PAGE DOWN / E0 + PAGE DOWN
+        .byte $00       ; 7B KEYPAD -
+        .byte $97       ; 7C PRINT SCREEN
+        .byte $99       ; 7D KEYPAD 9 / E0 + PAGE UP
+        .byte $9A       ; 7E SCROLL LOCK
+        .byte $00       ; 7F
+
+        .byte $00       ; 80
+        .byte $00       ; 81
+        .byte $00       ; 82
+        .byte $87       ; 83 F7
+        .byte $00       ; 84
+        .byte $00       ; 85
+        .byte $00       ; 86
+        .byte $00       ; 87
+        .byte $00       ; 88
+        .byte $00       ; 89
+        .byte $00       ; 8A
+        .byte $00       ; 8B
+        .byte $00       ; 8C 
+        .byte $00       ; 8D
+        .byte $00       ; 8E
+        .byte $00       ; 8F
