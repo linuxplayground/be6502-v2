@@ -3,6 +3,7 @@
         .include "sysram.inc"
         .include "utils.inc"
         .include "wozmon.inc"
+        .include "init.inc"
 
         .export _kbd_init
         .export _kbd_isr
@@ -110,7 +111,8 @@ _kbd_isr:
         jmp @exit
 @break:
         jsr _wozmon             ; if we hit the pause key - go straight into wozmon
-        jmp $8000               ; hard reset
+        plp
+        jmp menu                ; hard reset
 
 @shift_down:
         lda kbd_flags

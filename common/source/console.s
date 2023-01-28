@@ -2,6 +2,7 @@
         .include "acia.inc"
         .include "console_macros.inc"
         .include "zeropage.inc"
+        .include "vdp.inc"
 
         .export _con_init
         .export _con_in
@@ -35,6 +36,7 @@ _con_in:
 
 _con_out:
         jsr _acia_write_byte
+        jsr _vdp_out
         rts
 
 _con_prompt:
@@ -50,7 +52,7 @@ _con_print:
 @loop:
         lda (str_ptr),y
         beq @return
-        jsr _acia_write_byte
+        jsr _con_out
         iny
         jmp @loop
 @return:

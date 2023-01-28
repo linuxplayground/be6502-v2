@@ -8,12 +8,17 @@
         .include "via.inc"
         .include "xmodem.inc"
         .include "wozmon.inc"
+        .include "vdp.inc"
+
+        .export menu
 
         .code
 cold_boot:
         sei
         ldx #$ff
         txs
+        jsr _vdp_reset
+        jsr _vdp_clear_screen
 
         jsr _acia_init
         jsr _con_init
@@ -27,7 +32,7 @@ prompt:
         jsr _con_prompt
 wait_for_input:
         jsr _con_in
-        bcc wait_for_input
+        bcc flush
 
         cmp #'x'
         beq run_xmodem
@@ -37,30 +42,35 @@ wait_for_input:
         beq run_program
         cmp #'h'
         beq run_help
-        cmp #'c'
-        beq cold_boot
         cmp #$0a                        ; CR
         beq new_line
         jsr _con_out
         jmp prompt
+flush:
+        jsr _vdp_wait
+        jsr _vdp_flush
         jmp wait_for_input
 
 run_xmodem:
+        jsr _con_nl
         sei                             ; disable interrupts so xmodem can own the acia.
         jsr _xmodem
         cli
         jmp menu
 
 run_help:
+        jsr _con_nl
         mac_con_print str_help
         jsr _con_prompt
         jmp wait_for_input
 
 run_wozmon:
+        jsr _con_nl
         jsr _wozmon
         jmp menu
 
 run_program:
+        jsr _con_nl
         jsr $1000
         jsr _con_nl
         jmp menu
@@ -110,8 +120,6 @@ str_help:
         .byte "Press X to run XMODEM", $0d,$0a
         .byte "Press M to run WOZMON", $0d,$0a
         .byte "Press R to run PROGR ", $0d,$0a
-        .byte "Press C to run REBOOT", $0d,$0a
         .byte "Press H to show HELP ", $0d,$0a
         .byte $00
-
 

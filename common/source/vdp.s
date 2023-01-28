@@ -28,10 +28,13 @@ VDP_REG                 = __TMS_START__ + $01   ; TMS Mode 1
 ;     VDP FUNCTIONS
 ;=============================================================================
 _vdp_out:
+        pha
+        phx
+        phy
         cmp #$0d
         beq @cr
         cmp #$0a
-        beq @cr
+        beq @return
         cmp #$08
         beq @bs
 
@@ -41,6 +44,7 @@ _vdp_out:
         lda vdp_x
         cmp #32
         bne @return
+        stz vdp_x
         inc vdp_y
         lda vdp_y
         cmp #24
@@ -71,6 +75,9 @@ _vdp_out:
 
 
 @return:
+        ply
+        plx
+        pla
         rts
 
 _vdp_home:
@@ -80,7 +87,7 @@ _vdp_home:
         rts
 
 _vdp_put:
-        sta (vdp_cur_l),y
+        sta (vdp_cur_l)
         rts
 @flush:
         jsr _vdp_wait
