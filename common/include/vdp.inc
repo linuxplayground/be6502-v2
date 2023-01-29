@@ -1,8 +1,13 @@
         .import _vdp_reset
-        .import _vdp_clear_screen
         .import _vdp_home
-        .import _vdp_wait
-        .import _vdp_flush
-        .import _vdp_out
+        .import _vdp_clear_screen
+        .import _vdp_get
         .import _vdp_put
-        .import _vdp_scroll
+        .import _vdp_set_write_address
+        .import _vdp_set_read_address
+        .import _vdp_xy_to_ptr
+        .import _vdp_increment_pos_console
+        .import _vdp_decrement_pos_console
+        .import _vdp_console_out
+        .import _vdp_console_newline
+        .import _vdp_console_backspace

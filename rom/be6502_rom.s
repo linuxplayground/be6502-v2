@@ -17,11 +17,10 @@ cold_boot:
         sei
         ldx #$ff
         txs
-        jsr _vdp_reset
-        jsr _vdp_clear_screen
 
-        jsr _acia_init
+        jsr _vdp_reset
         jsr _con_init
+        jsr _acia_init
         jsr _kbd_init
         stz usr_irq
         stz usr_irq + 1
@@ -32,7 +31,7 @@ prompt:
         jsr _con_prompt
 wait_for_input:
         jsr _con_in
-        bcc flush
+        bcc wait_for_input
 
         cmp #'x'
         beq run_xmodem
@@ -46,9 +45,6 @@ wait_for_input:
         beq new_line
         jsr _con_out
         jmp prompt
-flush:
-        jsr _vdp_wait
-        jsr _vdp_flush
         jmp wait_for_input
 
 run_xmodem:

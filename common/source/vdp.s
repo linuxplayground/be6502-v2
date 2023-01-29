@@ -1,16 +1,21 @@
-        .include "vdp_macros.inc"
-        .include "sysram.inc"
         .include "zeropage.inc"
+        .include "sysram.inc"
+        .include "vdp_macros.inc"
+        .include "math.inc"
 
         .export _vdp_reset
-        .export _vdp_clear_screen
         .export _vdp_home
-        .export _vdp_wait
-        .export _vdp_flush
-        .export _vdp_out
+        .export _vdp_clear_screen
+        .export _vdp_get
         .export _vdp_put
-        .export _vdp_scroll
-
+        .export _vdp_set_write_address
+        .export _vdp_set_read_address
+        .export _vdp_xy_to_ptr
+        .export _vdp_increment_pos_console
+        .export _vdp_decrement_pos_console
+        .export _vdp_console_out
+        .export _vdp_console_newline
+        .export _vdp_console_backspace
 
 VDP_SPRITE_PATTERN_TABLE    = 0
 VDP_PATTERN_TABLE           = $800
@@ -24,241 +29,296 @@ VDP_REG                 = __TMS_START__ + $01   ; TMS Mode 1
 
         .code
 
-;=============================================================================
-;     VDP FUNCTIONS
-;=============================================================================
-_vdp_out:
-        pha
-        phx
-        phy
-        cmp #$0d
-        beq @cr
-        cmp #$0a
-        beq @return
-        cmp #$08
-        beq @bs
-
-        jsr _vdp_calc_cursor_addr
-        jsr _vdp_put
-        inc vdp_x
-        lda vdp_x
-        cmp #32
-        bne @return
-        stz vdp_x
-        inc vdp_y
-        lda vdp_y
-        cmp #24
-        bne @return
-        jsr _vdp_scroll
-        lda #23
-        sta vdp_y
-        stz vdp_x
-        jmp @return
-@cr:
-        inc vdp_y
-        lda vdp_y
-        cmp #24
-        bne :+
-        jsr _vdp_scroll
-        lda #23
-        sta vdp_y
-:       stz vdp_x
-        jmp @return
-
-@bs:
-        lda vdp_x
-        beq @return
-        dec vdp_x
-        jsr _vdp_calc_cursor_addr
-        lda #' '
-        jsr _vdp_put
-
-
-@return:
-        ply
-        plx
-        pla
-        rts
-
-_vdp_home:
-        stz vdp_x
-        stz vdp_y
-        jsr _vdp_calc_cursor_addr
-        rts
-
-_vdp_put:
-        sta (vdp_cur_l)
-        rts
-@flush:
-        jsr _vdp_wait
-        jsr _vdp_flush
-        rts
-
-; sets the vdp_cur_l pointer to a value based on y x 32 + x
-; inputs: x register and y register.
-_vdp_calc_cursor_addr:
-        pha
-        phx
-        phy
-        lda #<screen
-        sta vdp_cur_l
-        lda #>screen
-        sta vdp_cur_h
-@mul32:
-        lda vdp_cur_l
-        ldx vdp_x
-        ldy vdp_y
-@mul_32_lp:
-        cpy #$00
-        beq @mul_32_add_x
-        clc
-        adc #32
-        sta vdp_cur_l
-        bcc @mul_32_continue
-        inc vdp_cur_h
-@mul_32_continue:
-        dey
-        bne @mul_32_lp
-@mul_32_add_x:
-        clc
-        txa
-        adc vdp_cur_l
-        sta vdp_cur_l
-        bcc @mul_32_done
-        inc vdp_cur_h
-@mul_32_done:
-        ply
-        plx
-        pla
-        rts
-
-; scroll up one line.
-_vdp_scroll:
-        lda #0
-        sta scroll_write
-        lda #1
-        sta scroll_read
-@lp:
-        jsr scroll_buffer_in
-        jsr scroll_buffer_out
-        inc scroll_read
-        inc scroll_write
-        lda scroll_read
-        cmp #24
-        bne @lp
-        jsr scroll_insert_empty_line
-        lda #32
-        sta vdp_y
-        stz vdp_x
-        jsr _vdp_calc_cursor_addr
-        rts
-
-scroll_insert_empty_line:
-        lda #23
-        sta vdp_y
-        stz vdp_x
-        jsr _vdp_calc_cursor_addr
-        lda #' '
-        ldy #0
-@lp:
-        sta (vdp_cur_l),y
-        iny
-        cpy #32
-        bne @lp
-        rts
-
-scroll_buffer_in:
-        lda scroll_read
-        sta vdp_y
-        stz vdp_x
-        jsr _vdp_calc_cursor_addr
-
-        ldy #0
-@lp:
-        lda (vdp_cur_l),y
-        sta linebuf,y
-        iny
-        cpy #32
-        bne @lp
-        rts
-
-scroll_buffer_out:
-        lda scroll_write
-        sta vdp_y
-        stz vdp_x
-        jsr _vdp_calc_cursor_addr
-
-        ldy #0
-@lp:
-        lda linebuf,y
-        sta (vdp_cur_l),y
-        iny
-        cpy #32
-        bne @lp
-        rts
-
+; functions needed
 _vdp_reset:
         jsr vdp_clear_ram
         jsr vdp_set_graphics_1_mode
         jsr vdp_init_patterns
         jsr vdp_init_colors
-
-        lda #<screen
-        sta vdp_cur_l
-        lda #>screen
-        sta vdp_cur_h
-
         stz vdp_x
         stz vdp_y
         rts
 
-; clear the screen
-_vdp_clear_screen:
-        lda #<screen            ; point at start of screen ram
-        sta vdp_l
-        lda #>screen
-        sta vdp_h
-
-        ldy #0
-@lp:
-        lda #' '
-        sta (vdp_l),y
-        inc vdp_l
-        bne @lp
-        inc vdp_h
-        lda vdp_h
-        cmp #$09
-        beq @exit
-        jmp @lp
-@exit:
+; -----------------------------------------------------------------------------
+; Set write address to start of name table
+; -----------------------------------------------------------------------------
+_vdp_home:
+        stz vdp_x
+        stz vdp_y
+        vdp_vdp_xy_to_ptr
+        vdp_set_write_address VDP_NAME_TABLE
         rts
 
-; clear vdp memory all the way from 0 to 3FFF
+; -----------------------------------------------------------------------------
+; Fill screen with spaces.
+; -----------------------------------------------------------------------------
+_vdp_clear_screen:
+        vdp_set_write_address VDP_NAME_TABLE
+        ldx #3
+        lda #' '
+:       ldy #0
+:       sta VDP_VRAM
+        vdp_delay_slow
+        iny
+        bne :-
+        dex
+        bne :--
+        jsr _vdp_home
+        rts
+; -----------------------------------------------------------------------------
+; Get data from screen name table.
+; A contains data at vdp_ptr
+; -----------------------------------------------------------------------------
+_vdp_get:
+        vdp_ptr_to_vram_addr
+        lda VDP_VRAM
+        rts
+
+; -----------------------------------------------------------------------------
+; Write a byte to the VDP at address pointed to by vdp_ptr
+; A contains the byte to write. vdp_ptr already points to location to write to
+; -----------------------------------------------------------------------------
+_vdp_put:
+        pha
+        vdp_ptr_to_vram_addr
+        pla
+        sta VDP_VRAM
+        vdp_delay_slow
+        rts
+; -----------------------------------------------------------------------------
+; Set VDP Write address to address defined by A=lsb, X=msb
+; -----------------------------------------------------------------------------
+_vdp_set_write_address:
+        sta VDP_REG
+        vdp_delay_fast
+        txa
+        ora #$40
+        sta VDP_REG
+        vdp_delay_fast
+        rts
+; -----------------------------------------------------------------------------
+; Set VDP Read address to address defined by A=lsb, X=msb
+; -----------------------------------------------------------------------------
+_vdp_set_read_address:
+        sta VDP_REG
+        vdp_delay_fast
+        txa
+        sta VDP_REG
+        vdp_delay_fast
+        rts
+
+; -----------------------------------------------------------------------------
+; Clear all of the memory in the VDP
+; -----------------------------------------------------------------------------
 vdp_clear_ram:
         lda #0
         sta VDP_REG
         ora #$40
         sta VDP_REG
         lda #$FF
-        sta vdp_l
+        sta vdp_ptr
         lda #$3F
-        sta vdp_h
+        sta vdp_ptr + 1
 @clr_1:
         lda #$00
         sta VDP_VRAM
         vdp_delay_slow
-        dec vdp_l
-        lda vdp_l
+        dec vdp_ptr
+        lda vdp_ptr
         bne @clr_1
-        dec vdp_h
-        lda vdp_h
+        dec vdp_ptr + 1
+        lda vdp_ptr + 1
         bne @clr_1
         rts
 
+; -----------------------------------------------------------------------------
+; Set vdp_ptr for a given text position
+; Preserves A
+; Borks X, Y
+; -----------------------------------------------------------------------------
+; Inputs:
+;   X: X position (0 - 31)
+;   Y: Y position (0 - 23)
+; -----------------------------------------------------------------------------
+_vdp_xy_to_ptr:
+        pha
+        lda #>VDP_NAME_TABLE
+        sta vdp_ptr + 1
+        
+        ; this can be better. rotate and save, perhaps
+
+        tya
+        div8
+        clc
+        adc vdp_ptr + 1
+        sta vdp_ptr + 1
+        tya
+        and #$07
+        mul32
+        sta vdp_ptr
+        txa
+        ora vdp_ptr
+        sta vdp_ptr
+        pla
+        rts
+
+; -----------------------------------------------------------------------------
+; Increment console position
+; -----------------------------------------------------------------------------
+_vdp_increment_pos_console:
+        inc vdp_x
+        lda vdp_x
+        cmp #32
+        bne :+
+        lda #0
+        sta vdp_x
+        inc vdp_y
+:       lda vdp_y
+        cmp #24
+        bcc :+
+        dec vdp_y
+        jmp _vdp_scroll_line
+:       rts
+
+; -----------------------------------------------------------------------------
+; Decrement console position
+; -----------------------------------------------------------------------------
+_vdp_decrement_pos_console:
+        dec vdp_x
+        bpl :++
+        lda #32
+        sta vdp_x
+        dec vdp_x
+        lda #0
+        cmp vdp_y
+        bne :+
+        sta vdp_x
+        rts        
+:       dec vdp_y
+:       rts
+
+; -----------------------------------------------------------------------------
+; Print a character to the screen
+; -----------------------------------------------------------------------------
+; Inputs:
+;  'A': Character to output to console
+; -----------------------------------------------------------------------------
+_vdp_console_out:
+        stx vdp_reg_x
+        sty vdp_reg_y
+        cmp #$0d
+        beq @new_line
+        cmp #$0a
+        beq @end_console_out
+        cmp #$08
+        beq @backspace
+        pha
+        vdp_vdp_xy_to_ptr
+        pla
+        jsr _vdp_put
+        jsr _vdp_increment_pos_console
+@end_console_out:
+        ldy vdp_reg_y
+        ldx vdp_reg_x
+        rts 
+@new_line:
+        jsr _vdp_console_newline
+        jmp @end_console_out
+@backspace:
+        jsr _vdp_console_backspace
+        jmp @end_console_out
+
+; -----------------------------------------------------------------------------
+; Output a newline to the console (scrolls if on last line)
+; -----------------------------------------------------------------------------
+_vdp_console_newline:
+        stz vdp_x
+        inc vdp_y
+        lda vdp_y
+        cmp #24
+        bne :+
+        jsr _vdp_scroll_line
+        lda #23
+        sta vdp_y
+:       vdp_vdp_xy_to_ptr
+        rts
+
+; -----------------------------------------------------------------------------
+; Backspace
+; -----------------------------------------------------------------------------
+_vdp_console_backspace:
+        jsr _vdp_decrement_pos_console
+        vdp_vdp_xy_to_ptr
+        lda #' '
+        jsr _vdp_put
+        rts
+; -----------------------------------------------------------------------------
+; Scrolls text up by one line.
+; -----------------------------------------------------------------------------
+_vdp_scroll_line:
+        lda #0
+        sta scroll_write
+        lda #1
+        sta scroll_read
+:       jsr scroll_buffer_in
+        jsr scroll_buffer_out
+        inc scroll_read
+        inc scroll_write
+        lda scroll_read
+        cmp #24
+        bne :-
+        jsr scroll_insert_empty_line
+        vdp_p_xy_to_ptr 0,23
+        rts
+
+scroll_insert_empty_line:
+        vdp_p_xy_to_ptr 0,23
+        jsr _vdp_set_write_address
+        lda #' '
+        ldy #0
+:       sta VDP_VRAM
+        vdp_delay_slow
+        iny
+        cpy #32
+        bne :-
+        rts
+
+scroll_buffer_in:
+        lda scroll_read
+        sta vdp_y
+        stz vdp_x
+        vdp_vdp_xy_to_ptr
+        jsr _vdp_set_read_address
+        ldy #0
+:       lda VDP_VRAM
+        vdp_delay_slow
+        sta linebuf,y
+        iny
+        cpy #32
+        bne :-
+        rts
+
+scroll_buffer_out:
+        lda scroll_write
+        sta vdp_y
+        stz vdp_x
+        vdp_vdp_xy_to_ptr
+        jsr _vdp_set_write_address
+        ldy #0
+:       lda linebuf,y
+        sta VDP_VRAM
+        vdp_delay_slow
+        iny
+        cpy #32
+        bne :-
+        rts
+
+; -----------------------------------------------------------------------------
+; Set up Graphics Mode 1 - see init defaults at the end of this file.
+; -----------------------------------------------------------------------------
 vdp_set_graphics_1_mode:
         ldx #$00
-@loop:
-        lda vdp_graphics_1_inits,x
+:       lda vdp_graphics_1_inits,x
         sta VDP_REG
         vdp_delay_slow
         txa
@@ -267,106 +327,63 @@ vdp_set_graphics_1_mode:
         vdp_delay_slow
         inx
         cpx #8
-        bne @loop
+        bne :-
         rts
 
-; load the font
+; -----------------------------------------------------------------------------
+; Initialise the pattern table. (font)
+; -----------------------------------------------------------------------------
 vdp_init_patterns:
-        lda #<VDP_PATTERN_TABLE
-        sta VDP_REG
-        vdp_delay_slow
-        lda #>VDP_PATTERN_TABLE
-        ora #$40
-        sta VDP_REG
-        vdp_delay_slow
+        vdp_set_write_address VDP_PATTERN_TABLE
 
         lda #<patterns
-        sta vdp_l
+        sta vdp_ptr
         lda #>patterns
-        sta vdp_h
+        sta vdp_ptr + 1
         ldy #0
-@ip_1:
-        lda (vdp_l),y
+:
+        lda (vdp_ptr),y
         sta VDP_VRAM
-        vdp_delay_slow
-        lda vdp_l
+        lda vdp_ptr
         clc
         adc #1
-        sta vdp_l
+        sta vdp_ptr
         lda #0
-        adc vdp_h
-        sta vdp_h
+        adc vdp_ptr + 1
+        sta vdp_ptr + 1
         cmp #>end_patterns
-        bne @ip_1
-        lda vdp_l
+        bne :-
+        lda vdp_ptr
         cmp #<end_patterns
-        bne @ip_1
+        bne :-
         rts
 
-; load the initial colour pallette
+; -----------------------------------------------------------------------------
+; Initialise the color table.
+; -----------------------------------------------------------------------------
 vdp_init_colors:
-        lda #<VDP_COLOR_TABLE
-        sta VDP_REG
-        vdp_delay_slow
-        lda #>VDP_COLOR_TABLE
-        ora #$40
-        sta VDP_REG
-        vdp_delay_slow
+        vdp_set_write_address VDP_COLOR_TABLE
+
         lda #<colors
-        sta vdp_l
+        sta vdp_ptr
         lda #>colors
-        sta vdp_h
+        sta vdp_ptr + 1
         ldy #0
-@ic_1:
-        lda (vdp_l),y
+:       lda (vdp_ptr),y
         sta VDP_VRAM
         vdp_delay_slow
-        lda vdp_l
+        lda vdp_ptr
         clc
         adc #1
-        sta vdp_l
+        sta vdp_ptr
         lda #0
-        adc vdp_h
-        sta vdp_h
+        adc vdp_ptr + 1
+        sta vdp_ptr + 1
         cmp #>end_colors
-        bne @ic_1
-        lda vdp_l
+        bne :-
+        lda vdp_ptr
         cmp #<end_colors
-        bne @ic_1
-        rts
-
-_vdp_wait:
-        vdp_delay_slow
-        lda VDP_REG
-        and #$80
-        beq _vdp_wait
-        rts
-
-; This function is designed to flush on the next vertical pulse from the VDP
-_vdp_flush:
-        lda #<VDP_NAME_TABLE    ; set name table start address on vdp write register
-        sta VDP_REG
-        lda #>VDP_NAME_TABLE
-        ora #$40
-        sta VDP_REG
-
-        lda #<screen            ; point at start of screen ram
-        sta vdp_l
-        lda #>screen
-        sta vdp_h
-        ldx #3
-@lp1:
-        ldy #0
-@lp2:
-        lda (vdp_l),y
-        sta VDP_VRAM
-        nop
-        iny
-        bne @lp2
-        inc vdp_h
-        dex
-        bne @lp1
-@exit:
+        bne :-
         rts
 
 ;=============================================================================

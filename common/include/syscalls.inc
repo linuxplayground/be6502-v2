@@ -8,10 +8,28 @@
         .forceimport _syscall__prbyte
         ; vdp
         .forceimport _syscall__vdp_reset
-        .forceimport _syscall__vdp_clear_screen
         .forceimport _syscall__vdp_home
-        .forceimport _syscall__vdp_wait
-        .forceimport _syscall__vdp_flush
-        .forceimport _syscall__vdp_out
+        .forceimport _syscall__vdp_clear_screen
+        .forceimport _syscall__vdp_get
         .forceimport _syscall__vdp_put
-        .forceimport _syscall__vdp_scroll
+        .forceimport _syscall__vdp_set_write_address
+        .forceimport _syscall__vdp_set_read_address
+        .forceimport _syscall__vdp_xy_to_ptr
+        .forceimport _syscall__vdp_increment_pos_console
+        .forceimport _syscall__vdp_decrement_pos_console
+        .forceimport _syscall__vdp_console_out
+        .forceimport _syscall__vdp_console_newline
+        .forceimport _syscall__vdp_console_backspace
+
+        ; memory
+        .forceimport _system_con_buf     
+        .forceimport _system_Rbuff       
+        .forceimport _system_screen      
+        .forceimport _system_wozmon_buf  
+        .forceimport _system_vdp_x       
+        .forceimport _system_vdp_y       
+        .forceimport _system_linebuf     
+        .forceimport _system_scroll_read 
+        .forceimport _system_scroll_write
+        .forceimport _system_vdp_reg_x   
+        .forceimport _system_vdp_reg_y   

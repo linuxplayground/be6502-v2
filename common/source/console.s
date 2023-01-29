@@ -17,6 +17,8 @@
 _con_init:
         stz con_r_idx
         stz con_w_idx
+        jsr _vdp_clear_screen
+        jsr _vdp_home
         rts
 
 _con_in:
@@ -36,7 +38,7 @@ _con_in:
 
 _con_out:
         jsr _acia_write_byte
-        jsr _vdp_out
+        jsr _vdp_console_out
         rts
 
 _con_prompt:

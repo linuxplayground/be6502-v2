@@ -22,10 +22,8 @@
         .exportzp MODE
         .exportzp MSGL
         .exportzp MSGH
-        .exportzp vdp_l
-        .exportzp vdp_h
-        .exportzp vdp_cur_l
-        .exportzp vdp_cur_h
+        .exportzp vdp_ptr
+        .exportzp vdp_cur
 
         .zeropage        
 usr_irq:                .res 2, 0  ; the jump vector for user IRQ routines initialized to 0x0000
@@ -52,7 +50,5 @@ YSAV:                   .res 1     ; wozmon
 MODE:                   .res 1     ; wozmon
 MSGL:                   .res 1     ; wozmon
 MSGH:                   .res 1     ; wozmon
-vdp_l:                  .res 1     ; vdp
-vdp_h:                  .res 1     ; vdp
-vdp_cur_l:              .res 1     ; vdp
-vdp_cur_h:              .res 1     ; vdp
+vdp_ptr:                .res 2     ; vdp
+vdp_cur:                .res 2     ; vdp

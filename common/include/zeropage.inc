@@ -22,7 +22,5 @@
         .globalzp MODE
         .globalzp MSGL
         .globalzp MSGH
-        .globalzp vdp_l
-        .globalzp vdp_h
-        .globalzp vdp_cur_l
-        .globalzp vdp_cur_h
+        .globalzp vdp_ptr
+        .globalzp vdp_cur
