@@ -1,7 +1,7 @@
         .import con_buf         ; console
         .import Rbuff           ; xmodem
         .import screen          ; display memory
-        .import scrollbuf       ; text scroll buffer
+        .import wozmon_buf      ; wozmon input buffer
         .import scrollbuf       ; vdp single line scroll buffer 900-920
         .import vdp_x           ; vdp console x
         .import vdp_y           ; vdp console y

@@ -6,12 +6,15 @@
         .export linebuf
         .export scroll_read
         .export scroll_write
+        .export wozmon_buf
+        
 
         .segment "BSS"
-con_buf:        .res $0100      ; console 200 - 2ff
-Rbuff:          .res $0300      ; xmodem  300 - 5ff
-screen:         .res $0300      ; vdp g-1 600 - 8ff
-scrollbuf:      .res $20        ; vdp single line scroll buffer 900-920
+con_buf:        .res $0100      ; console
+Rbuff:          .res $0300      ; xmodem
+screen:         .res $0300      ; vdp g-1
+wozmon_buf:     .res $000F      ; wozmon input buffer
+scrollbuf:      .res $20        ; vdp single line scroll buffer
 vdp_x:          .res 1          ; vdp console x
 vdp_y:          .res 1          ; vdp console y
 linebuf:        .res $20        ; vdp scroll line buffer
