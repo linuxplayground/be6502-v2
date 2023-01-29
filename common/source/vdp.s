@@ -70,8 +70,8 @@ _vdp_clear_screen:
 ; A contains data at vdp_ptr
 ; -----------------------------------------------------------------------------
 _vdp_get:
-        vdp_ptr_to_vram_addr
         lda VDP_VRAM
+        vdp_delay_slow
         rts
 
 ; -----------------------------------------------------------------------------
@@ -79,9 +79,6 @@ _vdp_get:
 ; A contains the byte to write. vdp_ptr already points to location to write to
 ; -----------------------------------------------------------------------------
 _vdp_put:
-        pha
-        vdp_ptr_to_vram_addr
-        pla
         sta VDP_VRAM
         vdp_delay_slow
         rts
@@ -170,13 +167,11 @@ _vdp_increment_pos_console:
         lda vdp_x
         cmp #32
         bne :+
-        lda #0
-        sta vdp_x
+        stz vdp_x
         inc vdp_y
-:       lda vdp_y
+        lda vdp_y
         cmp #24
-        bcc :+
-        dec vdp_y
+        bne :+
         jmp _vdp_scroll_line
 :       rts
 
@@ -214,6 +209,7 @@ _vdp_console_out:
         beq @backspace
         pha
         vdp_vdp_xy_to_ptr
+        vdp_ptr_to_vram_write_addr
         pla
         jsr _vdp_put
         jsr _vdp_increment_pos_console
@@ -249,6 +245,7 @@ _vdp_console_newline:
 _vdp_console_backspace:
         jsr _vdp_decrement_pos_console
         vdp_vdp_xy_to_ptr
+        vdp_ptr_to_vram_write_addr
         lda #' '
         jsr _vdp_put
         rts
@@ -260,27 +257,14 @@ _vdp_scroll_line:
         sta scroll_write
         lda #1
         sta scroll_read
-:       jsr scroll_buffer_in
+@next_row:
+        jsr scroll_buffer_in
         jsr scroll_buffer_out
         inc scroll_read
         inc scroll_write
         lda scroll_read
-        cmp #24
-        bne :-
-        jsr scroll_insert_empty_line
-        vdp_p_xy_to_ptr 0,23
-        rts
-
-scroll_insert_empty_line:
-        vdp_p_xy_to_ptr 0,23
-        jsr _vdp_set_write_address
-        lda #' '
-        ldy #0
-:       sta VDP_VRAM
-        vdp_delay_slow
-        iny
-        cpy #32
-        bne :-
+        cmp #25
+        bne @next_row
         rts
 
 scroll_buffer_in:
@@ -288,10 +272,9 @@ scroll_buffer_in:
         sta vdp_y
         stz vdp_x
         vdp_vdp_xy_to_ptr
-        jsr _vdp_set_read_address
+        vdp_ptr_to_vram_read_addr
         ldy #0
-:       lda VDP_VRAM
-        vdp_delay_slow
+:       jsr _vdp_get
         sta linebuf,y
         iny
         cpy #32
@@ -303,11 +286,10 @@ scroll_buffer_out:
         sta vdp_y
         stz vdp_x
         vdp_vdp_xy_to_ptr
-        jsr _vdp_set_write_address
+        vdp_ptr_to_vram_write_addr
         ldy #0
 :       lda linebuf,y
-        sta VDP_VRAM
-        vdp_delay_slow
+        jsr _vdp_put
         iny
         cpy #32
         bne :-
