@@ -27,10 +27,10 @@ dir_rt          = %00000010
 dir_dn          = %00000100
 dir_lt          = %00001000
 
-collide_none    = %00000000
-collide_wall    = %00000001
-collide_tail    = %00000010
-collide_apple   = %00000100
+collide_none    = %00000000     ; 0
+collide_wall    = %00000001     ; 1
+collide_tail    = %00000010     ; 2
+collide_apple   = %00000100     ; 4
 
 ;------------------------------------------------------------------------------
 ; Variables - Zeropage
@@ -73,6 +73,7 @@ body_buf_end    = HIGH_MEM_START + $600 ; total size of screen area x 2
 .endmacro
 
         .code
+
 ;------------------------------------------------------------------------------
 ; Main entry point of game - initialize the game
 ;------------------------------------------------------------------------------
@@ -81,13 +82,15 @@ entry:
         sta head_x
         lda #11
         sta head_y
-        lda #5
+        lda #20
         sta length
         sta more_segments
+        
+        stz collide_state
 
         stz body_ptr_head
         stz body_ptr_tail
-        lda #$14 
+        lda #$14
         sta body_ptr_head_h
         sta body_ptr_head_h
         sta body_ptr_tail_h
@@ -99,8 +102,12 @@ start:
         jsr _vdp_clear_screen
         snake_print 6, 10, str_welcome
 
-        jsr gen_seed
+        jsr gen_seed                    ; wait for player to hit a key to start
 
+        lda #dir_rt
+        sta direction
+
+        jsr _vdp_clear_screen
 ;------------------------------------------------------------------------------
 ; Main game loop
 ;------------------------------------------------------------------------------
@@ -115,6 +122,7 @@ game_loop:
         jmp game_loop
 @exit:
         jmp exit_game
+
 ;------------------------------------------------------------------------------
 ; Checks user input buffer for a keypress.  Looks to see which direction going
 ; sets new direction if not illegal move. (can not reverse in snake)
@@ -185,6 +193,7 @@ update_snake:
         bne @return
         dec head_x
         snake_print     0, 0, str_lt
+
 @return:
         ; convert x,y location of head to VRAM Address and save to body_buffer
         ; at body_ptr_head
@@ -209,9 +218,10 @@ update_snake:
         rts
 
 ;------------------------------------------------------------------------------
-; Checks if snake has collided with Apple or Tail
+; Checks if snake has collided with Wall, Apple or Tail
 ;------------------------------------------------------------------------------
 check_collisions:
+        ; check wall collision
         lda head_y
         cmp #$ff
         bmi @wall_collision
@@ -222,14 +232,35 @@ check_collisions:
         beq @wall_collision
         cmp #32
         beq @wall_collision
-        ; no collision here, good to carry on.
 
+        ; check tail collision
+        ldy #0
+        lda (body_ptr_head),y
+        sta vdp_ptr
+        iny
+        lda (body_ptr_head),y
+        sta vdp_ptr + 1
+        vdp_ptr_to_vram_read_addr
+        lda VDP_VRAM
+        vdp_delay_slow
+        cmp #' '
+        beq @no_collide
+        cmp #head_char
+        beq @tail_collide
+        ; fall through
+@no_collide:
         lda #collide_none
         sta collide_state
+        clc
         rts
 @wall_collision:
         lda #collide_wall
         sta collide_state
+        bra @return
+@tail_collide:
+        lda #collide_tail
+        sta collide_state
+@return:
         sec
         rts
 
