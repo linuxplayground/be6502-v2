@@ -29,7 +29,9 @@ VDP_REG                 = __TMS_START__ + $01   ; TMS Mode 1
 
         .code
 
-; functions needed
+; -----------------------------------------------------------------------------
+; VDP Reset Routine
+; -----------------------------------------------------------------------------
 _vdp_reset:
         jsr vdp_clear_ram
         jsr vdp_set_graphics_1_mode
@@ -39,9 +41,7 @@ _vdp_reset:
         stz vdp_y
         rts
 
-; -----------------------------------------------------------------------------
-; Set write address to start of name table
-; -----------------------------------------------------------------------------
+
 _vdp_home:
         stz vdp_x
         stz vdp_y

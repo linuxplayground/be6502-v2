@@ -28,13 +28,6 @@
         jsr _vdp_set_read_address
 .endmacro
 
-
-.macro vdp_p_xy_to_ptr px, py
-        ldx #px
-        ldy #py
-        jsr _vdp_xy_to_ptr
-.endmacro
-
 .macro vdp_vdp_xy_to_ptr
         ldx vdp_x
         ldy vdp_y
