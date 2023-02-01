@@ -20,7 +20,12 @@ ZEROPAGE_END    = $FF
 HIGH_MEM_START  = $4000
 HIGH_MEM_END    = $5000
 
-head_char       = '@'
+head_up         = $80
+head_rt         = $83
+head_dn         = $82
+head_lt         = $85
+
+apple           = $90
 
 dir_up          = %00000001
 dir_rt          = %00000010
@@ -30,7 +35,6 @@ dir_lt          = %00001000
 collide_none    = %00000000     ; 0
 collide_wall    = %00000001     ; 1
 collide_tail    = %00000010     ; 2
-collide_apple   = %00000100     ; 4
 
 ;------------------------------------------------------------------------------
 ; Variables - Zeropage
@@ -47,6 +51,12 @@ seed            = length_h + 1          ; 1 byte                E8
 direction       = seed + 1              ; 1 byte                E9
 collide_state   = direction + 1         ; 1 byte                EA
 more_segments   = collide_state + 1     ; 1 byte                EB
+head_char       = more_segments + 1     ; 1 byte                EC
+speed_up        = head_char + 1         ; 1 byte                ED
+speed_dly       = speed_up + 1          ; 1 byte                EE
+unused_1        = speed_dly + 1         ; 1 bute                EF
+score           = unused_1 + 1          ; 2 byte                F0
+score_h         = score + 1             ;                       F1
 
 ;------------------------------------------------------------------------------
 ; Variables - High mem
@@ -82,7 +92,7 @@ entry:
         sta head_x
         lda #11
         sta head_y
-        lda #20
+        lda #5
         sta length
         sta more_segments
         
@@ -94,6 +104,16 @@ entry:
         sta body_ptr_head_h
         sta body_ptr_head_h
         sta body_ptr_tail_h
+        stz score
+        stz score_h
+
+        lda #head_rt
+        sta head_char
+
+        lda #5                          ; number of apples before game gets faster
+        sta speed_up
+        lda #$C0
+        sta speed_dly                   ; time of delay between game ticks.
 
 ;------------------------------------------------------------------------------
 ; Start of game.  Generate random seed
@@ -108,6 +128,8 @@ start:
         sta direction
 
         jsr _vdp_clear_screen
+        jsr new_apple
+
 ;------------------------------------------------------------------------------
 ; Main game loop
 ;------------------------------------------------------------------------------
@@ -141,6 +163,8 @@ read_keys:
         beq @return                     ; illegal move
         lda #dir_lt
         sta direction
+        lda #head_lt
+        sta head_char
 :       cmp #$A2                        ; RIGHT
         bne :+
         lda direction
@@ -148,6 +172,8 @@ read_keys:
         beq @return                     ; illegal move
         lda #dir_rt
         sta direction
+        lda #head_rt
+        sta head_char
         jmp @return
 :       cmp #$A3                        ; UP
         bne :+
@@ -156,6 +182,8 @@ read_keys:
         beq @return                     ; illegal move
         lda #dir_up
         sta direction
+        lda #head_up
+        sta head_char
         jmp @return
 :       cmp #$A4                        ; DOWN
         bne @return
@@ -164,6 +192,8 @@ read_keys:
         beq @return                     ; illegal move
         lda #dir_dn
         sta direction
+        lda #head_dn
+        sta head_char
         ; fall through
 @return:
         clc
@@ -176,23 +206,23 @@ update_snake:
         lda direction
         cmp #dir_up
         bne :+
-        snake_print     0, 0, str_up
+        ; snake_print     0, 0, str_up
         dec head_y
         bra @return
 :       cmp #dir_rt
         bne :+
         inc head_x
-        snake_print     0, 0, str_rt
+        ; snake_print     0, 0, str_rt
         bra @return
 :       cmp #dir_dn
         bne :+
         inc head_y
-        snake_print     0, 0, str_dn
+        ; snake_print     0, 0, str_dn
         bra @return
 :       cmp #dir_lt
         bne @return
         dec head_x
-        snake_print     0, 0, str_lt
+        ; snake_print     0, 0, str_lt
 
 @return:
         ; convert x,y location of head to VRAM Address and save to body_buffer
@@ -233,7 +263,7 @@ check_collisions:
         cmp #32
         beq @wall_collision
 
-        ; check tail collision
+        ; check tail or apple collision
         ldy #0
         lda (body_ptr_head),y
         sta vdp_ptr
@@ -245,9 +275,9 @@ check_collisions:
         vdp_delay_slow
         cmp #' '
         beq @no_collide
-        cmp #head_char
-        beq @tail_collide
-        ; fall through
+        cmp #apple
+        beq @apple_collide
+        bra @tail_collide               ; we must have hit the tail.
 @no_collide:
         lda #collide_none
         sta collide_state
@@ -260,10 +290,32 @@ check_collisions:
 @tail_collide:
         lda #collide_tail
         sta collide_state
+        bra @return
+@apple_collide:
+        jmp eat_apple
 @return:
         sec
         rts
-
+;------------------------------------------------------------------------------
+; Increments score, checks if game needs to run faster, generates new apple
+;------------------------------------------------------------------------------
+eat_apple:
+        inc score
+        bne :+
+        inc score + 1
+:       dec speed_up
+        bne :+
+        lda #5
+        sta speed_up
+        sec
+        lda speed_dly
+        sbc #$10
+        sta speed_dly
+:       jsr new_apple
+        lda #4
+        sta more_segments
+        clc                             ; returns to game loop - need to clc.
+        rts
 ;------------------------------------------------------------------------------
 ; Draws the snake head and body
 ;------------------------------------------------------------------------------
@@ -278,7 +330,7 @@ draw_snake:
         lda (body_ptr_tail),y
         sta vdp_ptr + 1
         vdp_ptr_to_vram_write_addr
-        lda #$00
+        lda #' '
         sta VDP_VRAM
         vdp_delay_slow
 
@@ -300,7 +352,7 @@ draw_snake:
         lda (body_ptr_head),y
         sta vdp_ptr + 1
         vdp_ptr_to_vram_write_addr
-        lda #head_char
+        lda head_char
         sta VDP_VRAM
         vdp_delay_slow                  ; actually draw the head
 
@@ -321,7 +373,7 @@ exit_game:
 ; Delay game between frames
 ;------------------------------------------------------------------------------
 delay:
-        ldy #$80
+        ldy speed_dly
 @loop1:
         ldx #0
 @loop2:
@@ -338,6 +390,40 @@ gen_seed:
         inc seed
         jsr _con_in
         bcc gen_seed
+        rts
+;------------------------------------------------------------------------------
+; generates a new apple on the screen
+; if screen location is already occupied, try again until empty space is found
+;------------------------------------------------------------------------------
+new_apple:
+@get_rand_x:
+        jsr prng
+        and #$1f
+        clc
+        cmp #30
+        bcs @get_rand_x
+        cmp #1
+        bcc @get_rand_x
+        tax
+@get_rand_y:
+        jsr prng
+        and #$17
+        clc
+        cmp #22
+        bcs @get_rand_y
+        cmp #1
+        bcc @get_rand_y
+        tay
+        jsr _vdp_xy_to_ptr
+        vdp_ptr_to_vram_read_addr
+        lda VDP_VRAM
+        vdp_delay_slow
+        cmp #' '
+        bne @get_rand_x
+        vdp_ptr_to_vram_write_addr
+        lda #apple
+        sta VDP_VRAM
+        vdp_delay_slow
         rts
 
 ;------------------------------------------------------------------------------
@@ -371,7 +457,6 @@ prng:
 
         .rodata
 str_welcome:    .asciiz "Press KEY to start"
-str_up:         .asciiz "UP"
-str_dn:         .asciiz "DN"
-str_lt:         .asciiz "LT"
-str_rt:         .asciiz "RT"
+str_game_over:  .asciiz "Game Over"
+str_score_txt:  .asciiz "Score: "
+str_score_val:  .asciiz "000"
