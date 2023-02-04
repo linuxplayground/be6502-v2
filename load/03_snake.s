@@ -18,8 +18,8 @@ VDP_COLOR_TABLE         = $2000
 ZEROPAGE_START  = $E0
 ZEROPAGE_END    = $FF
 
-HIGH_MEM_START  = $4000
-HIGH_MEM_END    = $5000
+HIGH_MEM_START  = $2000
+HIGH_MEM_END    = $6000
 
 head_up         = $80
 head_rt         = $83
@@ -62,7 +62,7 @@ score           = $EE
 ; Variables - High mem
 ;------------------------------------------------------------------------------
 body_buf        = HIGH_MEM_START + 0
-body_buf_end    = HIGH_MEM_START + $600 ; total size of screen area x 2
+body_buf_end    = HIGH_MEM_END      ; AS MUCH AS POSSIBLE
 
 ;------------------------------------------------------------------------------
 ; Game macros
@@ -94,6 +94,7 @@ entry:
         sta head_x
         lda #11
         sta head_y
+        lda #4
         sta more_segments
 
         stz collide_state
@@ -123,7 +124,7 @@ entry:
 ;------------------------------------------------------------------------------
 start:
         jsr _vdp_clear_screen
-        snake_print 6, 14, str_welcome
+        snake_print 5, 12, str_welcome
 
         jsr gen_seed                    ; wait for player to hit a key to start
 
@@ -149,15 +150,23 @@ game_loop:
 ; Convert score to decimal, display gameover message and score. 
 ;------------------------------------------------------------------------------
 game_over:
-        snake_print 12, 7, str_game_over
+        snake_print 12, 10, str_game_over
         snake_print 12, 12, str_score_txt
         lda score
         jsr convert_score
-        snake_print 19, 12, str_score_val
-
+        snake_print 18, 12, str_score_val
+        snake_print 1, 23, str_game_over_instr
 @wait_for_key:
         jsr _con_in
         bcc @wait_for_key
+        cmp #' '
+        beq @restart
+        cmp #$1b
+        beq @exit_game
+        jmp @wait_for_key
+@restart:
+        jmp entry
+@exit_game:
         jmp exit_game
 ;------------------------------------------------------------------------------
 ; Checks user input buffer for a keypress.  Looks to see which direction going
@@ -322,10 +331,11 @@ eat_apple:
         sta speed_up
         sec
         lda speed_dly
-        sbc #$10
-        sta speed_dly
+        beq :+                          ; if we ever get so fast, that we
+        sbc #$10                        ; roll around the maxint, we just
+        sta speed_dly                   ; quit speeding up.
 :       jsr new_apple
-        lda #4
+        lda #2
         sta more_segments
         clc                             ; returns to game loop - need to clc.
         rts
@@ -544,10 +554,12 @@ colors:
         .byte $f4,$71,$71,$71,$71,$71,$71,$71   ; 00 - 3F
         .byte $71,$71,$71,$71,$71,$71,$71,$71   ; 40 - 7F
         .byte $f1,$f1,$31,$f4,$f4,$f4,$f4,$f4   ; 80 - BF
-        .byte $f4,$f4,$f4,$f4,$f4,$f4,$f4,$f4   ; C0 - FF
+        .byte $f6,$f4,$f4,$f4,$f4,$f4,$f4,$f4   ; C0 - FF
 end_colors:
 
 str_welcome:    .asciiz "PRESS ANY KEY TO START"
 str_game_over:  .asciiz "GAME OVER"
+str_game_over_instr: 
+                .asciiz "SPACE = RESTART, ESCAPE = QUIT"
 str_score_txt:  .asciiz "SCORE:"
 str_score_val:  .asciiz "000"
