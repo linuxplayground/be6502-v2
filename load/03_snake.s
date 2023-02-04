@@ -11,6 +11,7 @@
 VDP_VRAM                = __TMS_START__ + $00   ; TMS Mode 0
 VDP_REG                 = __TMS_START__ + $01   ; TMS Mode 1
 VDP_NAME_TABLE          = $1400
+VDP_COLOR_TABLE         = $2000
 ;------------------------------------------------------------------------------
 ; Constants
 ;------------------------------------------------------------------------------
@@ -36,27 +37,26 @@ collide_none    = %00000000     ; 0
 collide_wall    = %00000001     ; 1
 collide_tail    = %00000010     ; 2
 
+medium_green    = $03
+
 ;------------------------------------------------------------------------------
 ; Variables - Zeropage
 ;------------------------------------------------------------------------------
-head_x          = ZEROPAGE_START + 0    ; 1 byte                E0
-head_y          = head_x + 1            ; 1 byte                E1
-body_ptr_head   = head_y + 1            ; 2 bytes               E2
-body_ptr_head_h = body_ptr_head + 1     ;                       E3
-body_ptr_tail   = body_ptr_head_h + 1   ; 2 bytes               E4
-body_ptr_tail_h = body_ptr_tail + 1     ;                       E5
-length          = body_ptr_tail_h + 1   ; 2 bytes               E6
-length_h        = length + 1            ;                       E7
-seed            = length_h + 1          ; 1 byte                E8
-direction       = seed + 1              ; 1 byte                E9
-collide_state   = direction + 1         ; 1 byte                EA
-more_segments   = collide_state + 1     ; 1 byte                EB
-head_char       = more_segments + 1     ; 1 byte                EC
-speed_up        = head_char + 1         ; 1 byte                ED
-speed_dly       = speed_up + 1          ; 1 byte                EE
-unused_1        = speed_dly + 1         ; 1 bute                EF
-score           = unused_1 + 1          ; 2 byte                F0
-score_h         = score + 1             ;                       F1
+head_x          = $E0    ; 1 byte                E0
+head_y          = $E1
+body_ptr_head   = $E2
+body_ptr_head_h = $E3
+body_ptr_tail   = $E4
+body_ptr_tail_h = $E5
+seed            = $E6
+direction       = $E7
+collide_state   = $E8
+more_segments   = $E9
+head_char       = $EA
+speed_up        = $EB
+speed_dly       = $EC
+bin2dec_tmp     = $ED
+score           = $EE
 
 ;------------------------------------------------------------------------------
 ; Variables - High mem
@@ -88,24 +88,21 @@ body_buf_end    = HIGH_MEM_START + $600 ; total size of screen area x 2
 ; Main entry point of game - initialize the game
 ;------------------------------------------------------------------------------
 entry:
+        ; setup game colours
+        jsr setup_colors
         lda #15                         ; start snake in middle of screen
         sta head_x
         lda #11
         sta head_y
-        lda #5
-        sta length
         sta more_segments
-        
+
         stz collide_state
 
         stz body_ptr_head
         stz body_ptr_tail
-        lda #$14
-        sta body_ptr_head_h
+        lda #>body_buf
         sta body_ptr_head_h
         sta body_ptr_tail_h
-        stz score
-        stz score_h
 
         lda #head_rt
         sta head_char
@@ -115,12 +112,18 @@ entry:
         lda #$C0
         sta speed_dly                   ; time of delay between game ticks.
 
+        stz score
+        lda #'0'                        ; set the 3 ascii chars for the score to '0'
+        sta str_score_val
+        sta str_score_val + 1
+        sta str_score_val + 2
+
 ;------------------------------------------------------------------------------
 ; Start of game.  Generate random seed
 ;------------------------------------------------------------------------------
 start:
         jsr _vdp_clear_screen
-        snake_print 6, 10, str_welcome
+        snake_print 6, 14, str_welcome
 
         jsr gen_seed                    ; wait for player to hit a key to start
 
@@ -135,16 +138,27 @@ start:
 ;------------------------------------------------------------------------------
 game_loop:
         jsr read_keys
-        bcs @exit
+        bcs game_over
         jsr update_snake
         jsr check_collisions
-        bcs @exit
+        bcs game_over
         jsr draw_snake
         jsr delay
         jmp game_loop
-@exit:
-        jmp exit_game
+;------------------------------------------------------------------------------
+; Convert score to decimal, display gameover message and score. 
+;------------------------------------------------------------------------------
+game_over:
+        snake_print 12, 7, str_game_over
+        snake_print 12, 12, str_score_txt
+        lda score
+        jsr convert_score
+        snake_print 19, 12, str_score_val
 
+@wait_for_key:
+        jsr _con_in
+        bcc @wait_for_key
+        jmp exit_game
 ;------------------------------------------------------------------------------
 ; Checks user input buffer for a keypress.  Looks to see which direction going
 ; sets new direction if not illegal move. (can not reverse in snake)
@@ -205,21 +219,21 @@ read_keys:
 update_snake:
         lda direction
         cmp #dir_up
-        bne :+
+        bne @rt
         ; snake_print     0, 0, str_up
         dec head_y
         bra @return
-:       cmp #dir_rt
-        bne :+
+@rt:    cmp #dir_rt
+        bne @dn
         inc head_x
         ; snake_print     0, 0, str_rt
         bra @return
-:       cmp #dir_dn
-        bne :+
+@dn:    cmp #dir_dn
+        bne @lt
         inc head_y
         ; snake_print     0, 0, str_dn
         bra @return
-:       cmp #dir_lt
+@lt:    cmp #dir_lt
         bne @return
         dec head_x
         ; snake_print     0, 0, str_lt
@@ -227,7 +241,6 @@ update_snake:
 @return:
         ; convert x,y location of head to VRAM Address and save to body_buffer
         ; at body_ptr_head
-
         ldy #1
         lda #>VDP_NAME_TABLE
         sta (body_ptr_head),y
@@ -340,7 +353,11 @@ draw_snake:
         lda body_ptr_tail
         bne @draw_head
         inc body_ptr_tail_h
-        bra @draw_head
+        lda body_ptr_tail_h
+        cmp #>body_buf_end
+        bcc @draw_head
+        lda #>body_buf_end
+        sta body_ptr_tail_h
 @dec_more_segments:
         dec more_segments
 @draw_head:
@@ -361,6 +378,11 @@ draw_snake:
         inc body_ptr_head
         bne @return
         inc body_ptr_head_h
+        lda body_ptr_head_h
+        cmp #>body_buf_end
+        bcc @return
+        lda #>body_buf_end
+        sta body_ptr_head_h
 @return:
         rts
 
@@ -368,7 +390,9 @@ draw_snake:
 ; Return to monitor
 ;------------------------------------------------------------------------------
 exit_game:
+        jsr _vdp_reset
         rts
+
 ;------------------------------------------------------------------------------
 ; Delay game between frames
 ;------------------------------------------------------------------------------
@@ -426,6 +450,40 @@ new_apple:
         vdp_delay_slow
         rts
 
+; -----------------------------------------------------------------------------
+; Convert the score into 3 digit decimal string.
+; -----------------------------------------------------------------------------
+convert_score:
+        sta bin2dec_tmp
+@hundreds_lp:
+        lda bin2dec_tmp
+        cmp #100
+        bcc @tens_lp
+        lda bin2dec_tmp
+        sec
+        sbc #100
+        sta bin2dec_tmp
+        lda str_score_val
+        inc a
+        sta str_score_val
+        jmp @hundreds_lp
+@tens_lp:
+        lda bin2dec_tmp
+        cmp #10
+        bcc @ones_lp
+        lda bin2dec_tmp
+        sec
+        sbc #10
+        sta bin2dec_tmp
+        lda str_score_val + 1
+        inc a
+        sta str_score_val + 1
+        jmp @tens_lp
+@ones_lp:
+        lda bin2dec_tmp                 ; is just saved as ASCII to the 1s place.
+        adc #$30
+        sta str_score_val + 2
+        rts
 ;------------------------------------------------------------------------------
 ; Print null terminated string pointed to by str_ptr
 ;------------------------------------------------------------------------------
@@ -454,9 +512,42 @@ prng:
 @noEor:
         sta seed
         rts
+; -----------------------------------------------------------------------------
+; Initialise the color table.
+; -----------------------------------------------------------------------------
+setup_colors:
+        vdp_set_write_address VDP_COLOR_TABLE
 
-        .rodata
-str_welcome:    .asciiz "Press KEY to start"
-str_game_over:  .asciiz "Game Over"
-str_score_txt:  .asciiz "Score: "
+        lda #<colors
+        sta vdp_ptr
+        lda #>colors
+        sta vdp_ptr + 1
+        ldy #0
+:       lda (vdp_ptr),y
+        sta VDP_VRAM
+        vdp_delay_slow
+        lda vdp_ptr
+        clc
+        adc #1
+        sta vdp_ptr
+        lda #0
+        adc vdp_ptr + 1
+        sta vdp_ptr + 1
+        cmp #>end_colors
+        bne :-
+        lda vdp_ptr
+        cmp #<end_colors
+        bne :-
+        rts
+
+colors:
+        .byte $f4,$71,$71,$71,$71,$71,$71,$71   ; 00 - 3F
+        .byte $71,$71,$71,$71,$71,$71,$71,$71   ; 40 - 7F
+        .byte $f1,$f1,$31,$f4,$f4,$f4,$f4,$f4   ; 80 - BF
+        .byte $f4,$f4,$f4,$f4,$f4,$f4,$f4,$f4   ; C0 - FF
+end_colors:
+
+str_welcome:    .asciiz "PRESS ANY KEY TO START"
+str_game_over:  .asciiz "GAME OVER"
+str_score_txt:  .asciiz "SCORE:"
 str_score_val:  .asciiz "000"
