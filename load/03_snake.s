@@ -38,6 +38,7 @@ collide_wall    = %00000001     ; 1
 collide_tail    = %00000010     ; 2
 
 medium_green    = $03
+speed_up_intrvl = 10            ; speed up the game every 10 apples
 
 ;------------------------------------------------------------------------------
 ; Variables - Zeropage
@@ -57,6 +58,7 @@ speed_up        = $EB
 speed_dly       = $EC
 bin2dec_tmp     = $ED
 score           = $EE
+score_h         = $EF
 
 ;------------------------------------------------------------------------------
 ; Variables - High mem
@@ -114,10 +116,7 @@ entry:
         sta speed_dly                   ; time of delay between game ticks.
 
         stz score
-        lda #'0'                        ; set the 3 ascii chars for the score to '0'
-        sta str_score_val
-        sta str_score_val + 1
-        sta str_score_val + 2
+        stz score_h
 
 ;------------------------------------------------------------------------------
 ; Start of game.  Generate random seed
@@ -152,9 +151,14 @@ game_loop:
 game_over:
         snake_print 12, 10, str_game_over
         snake_print 12, 12, str_score_txt
+        ldx #18
+        ldy #12
+        jsr _vdp_xy_to_ptr
+        vdp_ptr_to_vram_write_addr
+        lda score_h
+        jsr bcd_out_l
         lda score
-        jsr convert_score
-        snake_print 18, 12, str_score_val
+        jsr bcd_out
         snake_print 1, 23, str_game_over_instr
 @wait_for_key:
         jsr _con_in
@@ -322,12 +326,20 @@ check_collisions:
 ; Increments score, checks if game needs to run faster, generates new apple
 ;------------------------------------------------------------------------------
 eat_apple:
-        inc score
+        sed
+        clc
+        lda #1
+        adc score
+        sta score
+        bcc :+
+        lda #0
+        adc score_h
+        sta score_h
+:       cld
+
+        dec speed_up
         bne :+
-        inc score + 1
-:       dec speed_up
-        bne :+
-        lda #5
+        lda #speed_up_intrvl
         sta speed_up
         sec
         lda speed_dly
@@ -460,40 +472,6 @@ new_apple:
         vdp_delay_slow
         rts
 
-; -----------------------------------------------------------------------------
-; Convert the score into 3 digit decimal string.
-; -----------------------------------------------------------------------------
-convert_score:
-        sta bin2dec_tmp
-@hundreds_lp:
-        lda bin2dec_tmp
-        cmp #100
-        bcc @tens_lp
-        lda bin2dec_tmp
-        sec
-        sbc #100
-        sta bin2dec_tmp
-        lda str_score_val
-        inc a
-        sta str_score_val
-        jmp @hundreds_lp
-@tens_lp:
-        lda bin2dec_tmp
-        cmp #10
-        bcc @ones_lp
-        lda bin2dec_tmp
-        sec
-        sbc #10
-        sta bin2dec_tmp
-        lda str_score_val + 1
-        inc a
-        sta str_score_val + 1
-        jmp @tens_lp
-@ones_lp:
-        lda bin2dec_tmp                 ; is just saved as ASCII to the 1s place.
-        adc #$30
-        sta str_score_val + 2
-        rts
 ;------------------------------------------------------------------------------
 ; Print null terminated string pointed to by str_ptr
 ;------------------------------------------------------------------------------
@@ -508,6 +486,22 @@ local_print:
 @return:
         rts
 
+;------------------------------------------------------------------------------
+; Print 1 byte BCD value
+;------------------------------------------------------------------------------
+bcd_out:
+        pha
+        .repeat 4
+        lsr
+        .endrepeat
+        ora #'0'
+        sta VDP_VRAM
+        pla
+bcd_out_l:
+        and #$0f
+        ora #'0'
+        sta VDP_VRAM
+        rts
 ;------------------------------------------------------------------------------
 ; Generate a random number
 ; Result in A
@@ -562,4 +556,3 @@ str_game_over:  .asciiz "GAME OVER"
 str_game_over_instr: 
                 .asciiz "SPACE = RESTART, ESCAPE = QUIT"
 str_score_txt:  .asciiz "SCORE:"
-str_score_val:  .asciiz "000"
