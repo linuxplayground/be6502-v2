@@ -180,49 +180,66 @@ read_keys:
         jsr _con_in
         bcc @return
         cmp #$1b                        ; ESC
-        bne :+
+        bne @k_left
         sec
         rts
-:       cmp #$A1                        ; LEFT
-        bne :+
-        lda direction
-        cmp #dir_rt
-        beq @return                     ; illegal move
-        lda #dir_lt
-        sta direction
-        lda #head_lt
-        sta head_char
-:       cmp #$A2                        ; RIGHT
-        bne :+
+@k_left:
+        cmp #$A1                        ; LEFT
+        bne @k_right
         lda direction
         cmp #dir_lt
-        beq @return                     ; illegal move
-        lda #dir_rt
-        sta direction
-        lda #head_rt
-        sta head_char
-        jmp @return
-:       cmp #$A3                        ; UP
         bne :+
+        jmp turn_down
+:       cmp #dir_rt
+        bne :+
+        jmp turn_up
+:       cmp #dir_up
+        bne :+
+        jmp turn_left
+:       jmp turn_right
+@k_right:
+        cmp #$A2                        ; RIGHT KEY
+        bne @return
         lda direction
-        cmp #dir_dn
-        beq @return                     ; illegal move
+        cmp #dir_lt
+        bne :+
+        jmp turn_up
+:       cmp #dir_rt
+        bne :+
+        jmp turn_down
+:       cmp #dir_up
+        bne :+
+        jmp turn_right
+:       jmp turn_left
+@return:
+        clc
+        rts
+turn_up:
         lda #dir_up
         sta direction
         lda #head_up
         sta head_char
-        jmp @return
-:       cmp #$A4                        ; DOWN
-        bne @return
-        lda direction
-        cmp #dir_up
-        beq @return                     ; illegal move
+        clc
+        rts
+turn_down:
         lda #dir_dn
         sta direction
         lda #head_dn
         sta head_char
-        ; fall through
-@return:
+        clc
+        rts
+turn_left:
+        lda #dir_lt
+        sta direction
+        lda #head_lt
+        sta head_char
+        clc
+        rts
+turn_right:
+        lda #dir_rt
+        sta direction
+        lda #head_rt
+        sta head_char
         clc
         rts
 
