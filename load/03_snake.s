@@ -134,7 +134,10 @@ entry:
 ;------------------------------------------------------------------------------
 start:
         jsr _vdp_clear_screen
-        snake_print 5, 12, str_welcome
+        snake_print 1, 6, str_controls_1
+        snake_print 1, 7, str_controls_2
+        snake_print 1, 8, str_controls_3
+        snake_print 1, 12, str_welcome
 
         jsr gen_seed                    ; wait for player to hit a key to start
 
@@ -163,9 +166,9 @@ game_over:
         lda #<snd_crash
         ldx #>snd_crash
         jsr _play_vgm_data
-        snake_print 12, 10, str_game_over
-        snake_print 12, 12, str_score_txt
-        ldx #18
+        snake_print 1, 10, str_game_over
+        snake_print 1, 12, str_score_txt
+        ldx #17
         ldy #12
         jsr _vdp_xy_to_ptr
         vdp_ptr_to_vram_write_addr
@@ -617,8 +620,12 @@ snd_lvl_up:
         .byte $a0, $08, $00     ; channel A zero volume
         .byte $66
 
-str_welcome:    .asciiz "PRESS ANY KEY TO START"
-str_game_over:  .asciiz "GAME OVER"
+str_welcome:    .asciiz "    PRESS ANY KEY TO START     "
+str_controls_1: .asciiz " USE LEFT AND RIGHT ARROW KEYS "
+str_controls_2: .asciiz " TO STEER SNAKE LEFT AND RIGHT "
+str_controls_3: .asciiz "RELATIVE TO DIRECTION OF TRAVEL"
+
+str_game_over:  .asciiz "          GAME OVER            "
 str_game_over_instr: 
-                .asciiz "SPACE = RESTART, ESCAPE = QUIT"
-str_score_txt:  .asciiz "SCORE:"
+                .asciiz "SPACE = RESTART,  ESCAPE = QUIT"
+str_score_txt:  .asciiz "          SCORE:"
