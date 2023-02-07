@@ -16,12 +16,20 @@
         .export _vdp_console_out
         .export _vdp_console_newline
         .export _vdp_console_backspace
+        .export _vdp_write_reg
 
 VDP_SPRITE_PATTERN_TABLE    = 0
 VDP_PATTERN_TABLE           = $800
 VDP_SPRITE_ATTRIBUTE_TABLE  = $1000
 VDP_NAME_TABLE              = $1400
 VDP_COLOR_TABLE             = $2000
+
+VDP_TEXT_MODE_WIDTH         = 40
+VDP_GRAPHICS_MODE_WIDTH     = 32
+VDP_TEXT_MODE               = 0
+VDP_G1_MODE                 = 1
+VDP_G2_MODE                 = 2
+
 
         .import __TMS_START__
 VDP_VRAM                = __TMS_START__ + $00   ; TMS Mode 0
@@ -34,11 +42,16 @@ VDP_REG                 = __TMS_START__ + $01   ; TMS Mode 1
 ; -----------------------------------------------------------------------------
 _vdp_reset:
         jsr vdp_clear_ram
-        jsr vdp_set_graphics_1_mode
+        jsr vdp_init_registers                  ; defaults to text mode
         jsr vdp_init_patterns
         jsr vdp_init_colors
         stz vdp_x
         stz vdp_y
+
+        lda #VDP_TEXT_MODE_WIDTH
+        sta vdp_con_width
+        lda #VDP_TEXT_MODE
+        sta vdp_con_mode
         rts
 
 
@@ -54,7 +67,7 @@ _vdp_home:
 ; -----------------------------------------------------------------------------
 _vdp_clear_screen:
         vdp_set_write_address VDP_NAME_TABLE
-        ldx #3
+        ldx #4
         lda #' '
 :       ldy #0
 :       sta VDP_VRAM
@@ -105,6 +118,18 @@ _vdp_set_read_address:
         rts
 
 ; -----------------------------------------------------------------------------
+; VDP Write Register - A = Data, X = reg num
+; -----------------------------------------------------------------------------
+_vdp_write_reg:
+        sta VDP_REG
+        vdp_delay_slow
+        txa
+        ora #$80
+        sta VDP_REG
+        vdp_delay_slow
+        rts
+
+; -----------------------------------------------------------------------------
 ; Clear all of the memory in the VDP
 ; -----------------------------------------------------------------------------
 vdp_clear_ram:
@@ -139,11 +164,15 @@ vdp_clear_ram:
 ; -----------------------------------------------------------------------------
 _vdp_xy_to_ptr:
         pha
+        lda #<VDP_NAME_TABLE
+        sta vdp_ptr
         lda #>VDP_NAME_TABLE
         sta vdp_ptr + 1
         
         ; this can be better. rotate and save, perhaps
-
+        lda vdp_con_mode
+        beq @text_mode
+        ; applies to g1 and g2 mode
         tya
         div8
         clc
@@ -156,8 +185,30 @@ _vdp_xy_to_ptr:
         txa
         ora vdp_ptr
         sta vdp_ptr
+        bra @return
+@text_mode:
+        cpy #0
+        beq @add_x
+        clc
+        lda vdp_ptr
+        adc #VDP_TEXT_MODE_WIDTH
+        sta vdp_ptr
+        bcc @dec_y
+        inc vdp_ptr + 1
+@dec_y:
+        dey
+        bne @text_mode
+@add_x:
+        clc
+        txa
+        adc vdp_ptr
+        sta vdp_ptr
+        bcc @return
+        inc vdp_ptr + 1
+@return:
         pla
         rts
+
 
 ; -----------------------------------------------------------------------------
 ; Increment console position
@@ -165,7 +216,7 @@ _vdp_xy_to_ptr:
 _vdp_increment_pos_console:
         inc vdp_x
         lda vdp_x
-        cmp #32
+        cmp vdp_con_width
         bne :+
         stz vdp_x
         inc vdp_y
@@ -181,7 +232,7 @@ _vdp_increment_pos_console:
 _vdp_decrement_pos_console:
         dec vdp_x
         bpl :++
-        lda #32
+        lda vdp_con_width
         sta vdp_x
         dec vdp_x
         lda #0
@@ -277,7 +328,7 @@ scroll_buffer_in:
 :       jsr _vdp_get
         sta linebuf,y
         iny
-        cpy #32
+        cpy vdp_con_width
         bne :-
         rts
 
@@ -291,16 +342,16 @@ scroll_buffer_out:
 :       lda linebuf,y
         jsr _vdp_put
         iny
-        cpy #32
+        cpy vdp_con_width
         bne :-
         rts
 
 ; -----------------------------------------------------------------------------
 ; Set up Graphics Mode 1 - see init defaults at the end of this file.
 ; -----------------------------------------------------------------------------
-vdp_set_graphics_1_mode:
+vdp_init_registers:
         ldx #$00
-:       lda vdp_graphics_1_inits,x
+:       lda vdp_inits,x
         sta VDP_REG
         vdp_delay_slow
         txa
@@ -375,16 +426,16 @@ str_prompt:
         .asciiz "> "
 str_nl: .byte $0d,$0a,$00
 
-vdp_graphics_1_inits:
+vdp_inits:
 reg_0: .byte $00                ; r0
-reg_1: .byte $E0                ; r1 16kb ram + M1, interrupts enabled
+reg_1: .byte $F0                ; r1 16kb ram + M1, interrupts enabled, text mode
 reg_2: .byte $05                ; r2 name table at 0x1400
 reg_3: .byte $80                ; r3 color start 0x2000
 reg_4: .byte $01                ; r4 pattern generator start at 0x800
 reg_5: .byte $20                ; r5 Sprite attriutes start at 0x1000
 reg_6: .byte $00                ; r6 Sprite pattern table at 0x0000
-reg_7: .byte $45                ; r7 Set background and forground color
-vdp_end_graphics_1_inits:
+reg_7: .byte $E4                ; r7 Set background and forground color (white on dark blue)
+vdp_inits_end:
 
 patterns:
         .include "../res/font.asm"

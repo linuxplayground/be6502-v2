@@ -33,3 +33,30 @@
         ldy vdp_y
         jsr _vdp_xy_to_ptr
 .endmacro
+
+.macro vdp_write_reg reg, val
+        ldx reg
+        lda val
+        jsr _vdp_write_reg
+.endmacro
+
+.macro vdp_set_text_color fg, bg
+        lda #fg
+        lsr
+        lsr
+        lsr
+        lsr
+        ora #bg
+        ldx #7
+        jsr _vdp_write_reg
+.endmacro
+
+.macro vdp_con_g1_mode
+        lda #$E0
+        ldx #$01
+        jsr _vdp_write_reg
+        lda #1
+        sta vdp_con_mode
+        lda #32
+        sta vdp_con_width
+.endmacro

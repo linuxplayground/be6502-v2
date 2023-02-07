@@ -1,0 +1,131 @@
+%SIGNAL
+PIN   9 =  A9 
+PIN   8 =  A10 
+PIN   7 =  A11 
+PIN   6 =  A12 
+PIN   5 =  A13 
+PIN   4 =  A14 
+PIN   3 =  A15 
+PIN  16 =  IOCS1 
+PIN  17 =  IOCS2 
+PIN  18 =  IOCS3 
+PIN  19 =  IOCS4 
+PIN  20 =  IOCS5 
+PIN  21 =  IOCS6 
+PIN  22 =  OE 
+PIN   1 =  PHI2 
+PIN  14 =  RAMCS 
+PIN  15 =  ROMCS 
+PIN   2 =  RW 
+PIN  23 =  WE 
+%END
+
+%FIELD
+%END
+
+%EQUATION
+IOCS1 =>
+    A10
+  # A11
+  # A12
+  # A13
+  # A14
+  # !A15
+  # A9
+
+IOCS2 =>
+    A10
+  # A11
+  # A12
+  # A13
+  # A14
+  # !A15
+  # !A9
+
+IOCS3 =>
+    !A10
+  # A11
+  # A12
+  # A13
+  # A14
+  # !A15
+  # A9
+
+IOCS4 =>
+    !A10
+  # A11
+  # A12
+  # A13
+  # A14
+  # !A15
+  # !A9
+
+IOCS5 =>
+    A10
+  # !A11
+  # A12
+  # A13
+  # A14
+  # !A15
+  # A9
+
+IOCS6 =>
+    A10
+  # !A11
+  # A12
+  # A13
+  # A14
+  # !A15
+  # !A9
+
+OE =>
+    !RW
+
+RAMCS =>
+    A15
+
+ROMCS =>
+    !A12 & !A13 & !A14
+  # !A15
+
+WE =>
+    !PHI2
+  # RW
+
+ar =>
+    0 
+
+sp =>
+    0 
+
+IOCS1.oe  =>
+    1 
+
+IOCS2.oe  =>
+    1 
+
+IOCS3.oe  =>
+    1 
+
+IOCS4.oe  =>
+    1 
+
+IOCS5.oe  =>
+    1 
+
+IOCS6.oe  =>
+    1 
+
+OE.oe  =>
+    1 
+
+RAMCS.oe  =>
+    1 
+
+ROMCS.oe  =>
+    1 
+
+WE.oe  =>
+    1 
+
+%END

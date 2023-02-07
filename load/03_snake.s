@@ -5,6 +5,7 @@
         .include "vdp.inc"
         .include "vdp_macros.inc"
         .include "math.inc"
+        .include "audiolib.inc"
         .include "sysram.inc"
 
         .import __TMS_START__
@@ -90,6 +91,16 @@ body_buf_end    = HIGH_MEM_END      ; AS MUCH AS POSSIBLE
 ; Main entry point of game - initialize the game
 ;------------------------------------------------------------------------------
 entry:
+
+        jsr _psg_init
+        lda #<snd_init
+        ldx #>snd_init
+        jsr _play_vgm_data
+
+        ; switch to graphics mode
+        vdp_con_g1_mode
+        ; audio
+        
         ; setup game colours
         jsr setup_colors
         lda #15                         ; start snake in middle of screen
@@ -149,6 +160,9 @@ game_loop:
 ; Convert score to decimal, display gameover message and score. 
 ;------------------------------------------------------------------------------
 game_over:
+        lda #<snd_crash
+        ldx #>snd_crash
+        jsr _play_vgm_data
         snake_print 12, 10, str_game_over
         snake_print 12, 12, str_score_txt
         ldx #18
@@ -343,6 +357,9 @@ check_collisions:
 ; Increments score, checks if game needs to run faster, generates new apple
 ;------------------------------------------------------------------------------
 eat_apple:
+        lda #<snd_eat
+        ldx #>snd_eat
+        jsr _play_vgm_data
         sed
         clc
         lda #1
@@ -363,6 +380,9 @@ eat_apple:
         beq :+                          ; if we ever get so fast, that we
         sbc #$10                        ; roll around the maxint, we just
         sta speed_dly                   ; quit speeding up.
+        lda #<snd_lvl_up
+        ldx #>snd_lvl_up
+        jsr _play_vgm_data
 :       jsr new_apple
         lda #2
         sta more_segments
@@ -567,6 +587,35 @@ colors:
         .byte $f1,$f1,$31,$f4,$f4,$f4,$f4,$f4   ; 80 - BF
         .byte $f6,$f4,$f4,$f4,$f4,$f4,$f4,$f4   ; C0 - FF
 end_colors:
+
+; ay sound bytes, vgm format
+snd_init:
+        .byte $a0, $07, $2E     ; mixer enable channel A (tone) and channel B (noise)
+        .byte $66
+snd_eat:
+        .byte $a0, $08, $1f     ; channel A (tone) volume controlled by envelope
+        .byte $a0, $0c, $04     ; envelope frequency, channel B
+        .byte $a0, $0d, $00     ; envelope shape to \_
+        .byte $a0, $00, $80     ; channel A (tone) fine frequency
+        .byte $a0, $01, $00     ; channel A (tone) course frequency
+        .byte $66
+snd_crash:
+        .byte $a0, $09, $1F     ; channel B (noise) volume controlled by envelope
+        .byte $a0, $08, $00     ; channel A (tone) volume OFF
+        .byte $a0, $0b, $a0     ; set envelope fine duration
+        .byte $a0, $0c, $40     ; set envelope course duration
+        .byte $a0, $0d, $00     ; set envelope shape to   \__ 
+        .byte $a0, $06, $0f     ; Set noise duration
+        .byte $66
+snd_lvl_up:
+        .byte $a0, $08, $0f     ; channel A full volume
+        .byte $a0, $01, $00     ; channel A (tone) course frequency
+        .byte $a0, $00, $FF     ; channel A (tone) fine frequency (lower pitch)
+        .byte $61, $2d, $08     ; wait 
+        .byte $a0, $00, $80     ; channel A (tone) fine frequency (higher pitch)
+        .byte $61, $2d, $0f     ; wait 
+        .byte $a0, $08, $00     ; channel A zero volume
+        .byte $66
 
 str_welcome:    .asciiz "PRESS ANY KEY TO START"
 str_game_over:  .asciiz "GAME OVER"
