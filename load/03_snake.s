@@ -90,6 +90,15 @@ body_buf_end    = HIGH_MEM_END      ; AS MUCH AS POSSIBLE
 ; Main entry point of game - initialize the game
 ;------------------------------------------------------------------------------
 entry:
+        ; switch to graphics mode
+        lda #$E0
+        ldx #$01
+        jsr _vdp_write_reg
+        lda #1
+        sta $093D
+        lda #32
+        sta $093E
+
         ; setup game colours
         jsr setup_colors
         lda #15                         ; start snake in middle of screen

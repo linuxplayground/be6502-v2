@@ -22,6 +22,7 @@
         .export _vdp_console_out
         .export _vdp_console_newline
         .export _vdp_console_backspace
+        .export _vdp_write_reg
 
         ; memory
         .export con_buf         ; console
@@ -35,6 +36,8 @@
         .export scroll_write    ; vdp scroll write line num
         .export vdp_reg_x       ; vdp temp storage for reg x
         .export vdp_reg_y       ; vdp temp storage for reg y
+        .export vdp_con_mode    ; vdp console mode: 0=text, 1=g1, 2=g2
+        .export vdp_con_width   ; vdp width of currently selected console
 
         .code
 
@@ -60,6 +63,7 @@ _vdp_decrement_pos_console:     jmp (_syscall__vdp_decrement_pos_console)
 _vdp_console_out:               jmp (_syscall__vdp_console_out)
 _vdp_console_newline:           jmp (_syscall__vdp_console_newline)
 _vdp_console_backspace:         jmp (_syscall__vdp_console_backspace)
+_vdp_write_reg:                 jmp (_syscall__vdp_write_reg)
 
 ; memory
 con_buf:                        .word _system_con_buf
@@ -73,3 +77,5 @@ scroll_read:                    .word _system_scroll_read
 scroll_write:                   .word _system_scroll_write
 vdp_reg_x:                      .word _system_vdp_reg_x
 vdp_reg_y:                      .word _system_vdp_reg_y
+vdp_con_mode:                   .word _system_vdp_con_mode
+vdp_con_width:                  .word _system_vdp_con_width

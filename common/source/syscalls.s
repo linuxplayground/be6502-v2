@@ -25,6 +25,7 @@
         .export _syscall__vdp_console_out
         .export _syscall__vdp_console_newline
         .export _syscall__vdp_console_backspace
+        .export _syscall__vdp_write_reg
 
         ; memory
         .export _system_con_buf
@@ -38,6 +39,8 @@
         .export _system_scroll_write
         .export _system_vdp_reg_x
         .export _system_vdp_reg_y
+        .export _system_vdp_con_mode
+        .export _system_vdp_con_width
 
         .segment "SYSCALLS"
 ; console
@@ -62,6 +65,7 @@ _syscall__vdp_decrement_pos_console:    .word _vdp_decrement_pos_console
 _syscall__vdp_console_out:              .word _vdp_console_out
 _syscall__vdp_console_newline:          .word _vdp_console_newline
 _syscall__vdp_console_backspace:        .word _vdp_console_backspace
+_syscall__vdp_write_reg:                .word _vdp_write_reg
 
 ; memory
 _system_con_buf:                        .word con_buf
@@ -75,3 +79,5 @@ _system_scroll_read:                    .word scroll_read
 _system_scroll_write:                   .word scroll_write
 _system_vdp_reg_x:                      .word vdp_reg_x
 _system_vdp_reg_y:                      .word vdp_reg_x
+_system_vdp_con_mode:                   .word vdp_con_mode
+_system_vdp_con_width:                  .word vdp_con_width

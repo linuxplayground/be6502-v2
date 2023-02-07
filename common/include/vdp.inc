@@ -11,3 +11,4 @@
         .import _vdp_console_out
         .import _vdp_console_newline
         .import _vdp_console_backspace
+        .import _vdp_write_reg

@@ -20,6 +20,7 @@
         .forceimport _syscall__vdp_console_out
         .forceimport _syscall__vdp_console_newline
         .forceimport _syscall__vdp_console_backspace
+        .forceimport _syscall__vdp_write_reg
 
         ; memory
         .forceimport _system_con_buf     
@@ -33,3 +34,5 @@
         .forceimport _system_scroll_write
         .forceimport _system_vdp_reg_x   
         .forceimport _system_vdp_reg_y   
+        .forceimport _system_vdp_con_mode
+        .forceimport _system_vdp_con_width
