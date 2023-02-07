@@ -24,3 +24,5 @@
         .globalzp MSGH
         .globalzp vdp_ptr
         .globalzp vdp_cur
+        .globalzp vdp_con_mode
+        .globalzp vdp_con_width

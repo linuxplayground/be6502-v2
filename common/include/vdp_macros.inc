@@ -50,3 +50,13 @@
         ldx #7
         jsr _vdp_write_reg
 .endmacro
+
+.macro vdp_con_g1_mode
+        lda #$E0
+        ldx #$01
+        jsr _vdp_write_reg
+        lda #1
+        sta vdp_con_mode
+        lda #32
+        sta vdp_con_width
+.endmacro

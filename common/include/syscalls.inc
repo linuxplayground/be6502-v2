@@ -34,5 +34,3 @@
         .forceimport _system_scroll_write
         .forceimport _system_vdp_reg_x   
         .forceimport _system_vdp_reg_y   
-        .forceimport _system_vdp_con_mode
-        .forceimport _system_vdp_con_width

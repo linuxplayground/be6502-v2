@@ -39,8 +39,6 @@
         .export _system_scroll_write
         .export _system_vdp_reg_x
         .export _system_vdp_reg_y
-        .export _system_vdp_con_mode
-        .export _system_vdp_con_width
 
         .segment "SYSCALLS"
 ; console
@@ -79,5 +77,3 @@ _system_scroll_read:                    .word scroll_read
 _system_scroll_write:                   .word scroll_write
 _system_vdp_reg_x:                      .word vdp_reg_x
 _system_vdp_reg_y:                      .word vdp_reg_x
-_system_vdp_con_mode:                   .word vdp_con_mode
-_system_vdp_con_width:                  .word vdp_con_width

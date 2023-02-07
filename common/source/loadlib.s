@@ -36,8 +36,6 @@
         .export scroll_write    ; vdp scroll write line num
         .export vdp_reg_x       ; vdp temp storage for reg x
         .export vdp_reg_y       ; vdp temp storage for reg y
-        .export vdp_con_mode    ; vdp console mode: 0=text, 1=g1, 2=g2
-        .export vdp_con_width   ; vdp width of currently selected console
 
         .code
 
@@ -77,5 +75,3 @@ scroll_read:                    .word _system_scroll_read
 scroll_write:                   .word _system_scroll_write
 vdp_reg_x:                      .word _system_vdp_reg_x
 vdp_reg_y:                      .word _system_vdp_reg_y
-vdp_con_mode:                   .word _system_vdp_con_mode
-vdp_con_width:                  .word _system_vdp_con_width

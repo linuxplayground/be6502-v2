@@ -91,13 +91,7 @@ body_buf_end    = HIGH_MEM_END      ; AS MUCH AS POSSIBLE
 ;------------------------------------------------------------------------------
 entry:
         ; switch to graphics mode
-        lda #$E0
-        ldx #$01
-        jsr _vdp_write_reg
-        lda #1
-        sta $093D
-        lda #32
-        sta $093E
+        vdp_con_g1_mode
 
         ; setup game colours
         jsr setup_colors
