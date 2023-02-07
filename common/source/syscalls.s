@@ -1,6 +1,7 @@
         .include "console.inc"
         .include "wozmon.inc"
         .include "vdp.inc"
+        .include "audiolib.inc"
         .include "sysram.inc"
 
         ; console
@@ -26,7 +27,9 @@
         .export _syscall__vdp_console_newline
         .export _syscall__vdp_console_backspace
         .export _syscall__vdp_write_reg
-
+        ;audio
+        .export _syscall__psg_init
+        .export _syscall__play_vgm_data
         ; memory
         .export _system_con_buf
         .export _system_Rbuff
@@ -64,7 +67,9 @@ _syscall__vdp_console_out:              .word _vdp_console_out
 _syscall__vdp_console_newline:          .word _vdp_console_newline
 _syscall__vdp_console_backspace:        .word _vdp_console_backspace
 _syscall__vdp_write_reg:                .word _vdp_write_reg
-
+;audio
+_syscall__psg_init:                     .word _psg_init
+_syscall__play_vgm_data:                .word _play_vgm_data
 ; memory
 _system_con_buf:                        .word con_buf
 _system_Rbuff:                          .word Rbuff

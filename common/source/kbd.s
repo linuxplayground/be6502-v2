@@ -31,8 +31,12 @@ KBD_C_FLAG   = %00000100
         next_code_up
         lda #1
         jsr _delay_ms
+        lda #$00                ; via is input
+        sta VIA_DDRA
         lda VIA_PORTA
         pha
+        lda #$FF                ; via is output
+        sta VIA_DDRA
         next_code_down
         pla
 .endmacro

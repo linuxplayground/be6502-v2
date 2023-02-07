@@ -26,6 +26,8 @@
         .exportzp vdp_cur
         .exportzp vdp_con_mode
         .exportzp vdp_con_width
+        .exportzp vgm_data
+        .exportzp vgm_temp
 
         .zeropage        
 usr_irq:                .res 2, 0  ; the jump vector for user IRQ routines initialized to 0x0000
@@ -56,3 +58,5 @@ vdp_ptr:                .res 2     ; vdp
 vdp_cur:                .res 2     ; vdp
 vdp_con_mode:           .res 1     ; vdp
 vdp_con_width:          .res 1     ; vdp
+vgm_data:               .res 2     ; audio
+vgm_temp:               .res 2     ; audio
