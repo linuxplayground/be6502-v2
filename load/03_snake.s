@@ -627,5 +627,5 @@ str_controls_3: .asciiz "RELATIVE TO DIRECTION OF TRAVEL"
 
 str_game_over:  .asciiz "          GAME OVER            "
 str_game_over_instr: 
-                .asciiz "SPACE = RESTART,  ESCAPE = QUIT"
+                .asciiz "SPACE = RESTART, ESCAPE = QUIT "
 str_score_txt:  .asciiz "          SCORE:"

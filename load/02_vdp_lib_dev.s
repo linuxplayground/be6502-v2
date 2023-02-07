@@ -7,6 +7,7 @@
 ; test application and entry point.
 main:
         jsr _vdp_clear_screen
+        vdp_set_text_color $06, $0f
         lda #23
         sta vdp_y
         lda #31

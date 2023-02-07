@@ -15,6 +15,7 @@ KBDOFF       = %11110111
 KBD_R_FLAG   = %00000001
 KBD_S_FLAG   = %00000010
 KBD_C_FLAG   = %00000100
+KBD_CL_FLAG  = %00001000
 
 ; keyboard macros
 .macro next_code_up
@@ -75,9 +76,15 @@ _kbd_isr:
         beq @shift_up
         cmp #$59                ; right shift up
         beq @shift_up
-
+        cmp #$58                ; CAPSLOCK
+        beq @capslock_up
         jmp @exit
 
+@capslock_up:
+        lda kbd_flags
+        eor #(KBD_CL_FLAG)
+        sta kbd_flags
+        jmp @exit
 @shift_up:
         lda kbd_flags
         eor #(KBD_S_FLAG)       ; flip the shift bit
@@ -97,9 +104,13 @@ _kbd_isr:
         beq @exit
         cmp #$E1                ; this is the only key that starts with E1
         beq @break
+        cmp #$58                ; we don't care if capslock is being pressed, only released.
+        beq @exit
 
         tax
         lda kbd_flags
+        and #(KBD_CL_FLAG)
+        bne @shifted_key
         and #(KBD_S_FLAG)       ; check if shif it currently down
         bne @shifted_key
 

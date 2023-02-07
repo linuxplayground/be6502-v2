@@ -42,10 +42,10 @@
 
 .macro vdp_set_text_color fg, bg
         lda #fg
-        lsr
-        lsr
-        lsr
-        lsr
+        asl
+        asl
+        asl
+        asl
         ora #bg
         ldx #7
         jsr _vdp_write_reg
