@@ -22,6 +22,7 @@ _con_init:
         rts
 
 _con_in:
+        phx
         sei
         lda con_r_idx
         cmp con_w_idx
@@ -31,9 +32,11 @@ _con_in:
         lda con_buf,x
         inc con_r_idx
         sec
+        plx
         rts
 @no_data:
         clc
+        plx
         rts
 
 _con_out:

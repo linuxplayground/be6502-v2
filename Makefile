@@ -20,6 +20,7 @@ COMMON_SOURCE_FILES= zeropage.s \
 			sysram.s \
 			syscalls.s \
 			acia.s \
+			ehbasic.s \
 			audiolib.s \
 			kbd.s \
 			console.s \
@@ -35,7 +36,8 @@ COMMON_LIB=$(COMMON_BUILD)/common.lib
 ROM_ROOT=rom
 ROM_BUILD=$(BUILD)/rom
 ROM_SOURCES=$(ROM_ROOT)
-ROM_SOURCE_FILES=be6502_rom.s
+ROM_SOURCE_FILES=be6502_rom.s \
+	be6502_ehbasic.s
 ROM_OBJECTS=$(ROM_SOURCE_FILES:%.s=$(ROM_BUILD)/%.o)
 ROM_BINARIES=$(ROM_SOURCE_FILES:%.s=$(ROM_BUILD)/%.bin)
 
