@@ -104,17 +104,27 @@ _kbd_isr:
         beq @exit
         cmp #$E1                ; this is the only key that starts with E1
         beq @break
-        cmp #$58                ; we don't care if capslock is being pressed, only released.
+        cmp #$58                ; capslock
         beq @exit
 
         tax
         lda kbd_flags
-        and #(KBD_CL_FLAG)
-        bne @shifted_key
         and #(KBD_S_FLAG)       ; check if shif it currently down
         bne @shifted_key
+        lda kbd_flags
+        and #(KBD_CL_FLAG)      ; honor shift key before capslock
+        bne @capslock
 
+@unshifted_key:
         lda keymap_l,x          ; fetch ascii from keymap lowercase
+        jmp @push_key
+@capslock:
+        lda keymap_l,x
+        cmp #'a'                ; Is it < 'a'?
+        bcc @unshifted_key      ; Yes, we're done
+        cmp #'{'                ; Is it >= '{'?
+        bcs @unshifted_key      ; Yes, we're done
+        and #$5f                ; Otherwise, mask to uppercase
         jmp @push_key
 @shifted_key:
         lda keymap_u,x          ; fetch ascii from keymap uppercase
@@ -132,6 +142,11 @@ _kbd_isr:
 @shift_down:
         lda kbd_flags
         ora #(KBD_S_FLAG)
+        sta kbd_flags
+        jmp @exit
+@capslock_down:
+        lda kbd_flags
+        ora #(KBD_CL_FLAG)
         sta kbd_flags
         jmp @exit
 @key_release:

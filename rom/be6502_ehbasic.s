@@ -48,8 +48,6 @@ cold_boot:
         stz usr_irq + 1
         cli
 menu:
-        ; lda #(ACIA_PARITY_DISABLE | ACIA_ECHO_DISABLE | ACIA_TX_INT_DISABLE_RTS_LOW | ACIA_RX_INT_ENABLE | ACIA_DTR_LOW)
-        ; sta ACIA_COMMAND
         mac_con_print str_help
 prompt:
         jsr _con_prompt
@@ -80,8 +78,6 @@ run_xmodem:
         cli
         jmp menu
 run_basic:
-        ; lda #(ACIA_PARITY_DISABLE | ACIA_ECHO_DISABLE | ACIA_TX_INT_DISABLE_RTS_LOW | ACIA_RX_INT_DISABLE | ACIA_DTR_LOW)
-        ; sta ACIA_COMMAND
         jmp BASIC_init
 run_help:
         jsr _con_nl
@@ -133,9 +129,6 @@ irq:
         pla
 
         rti
-
-
-
 
         .segment "VECTORS"
 
