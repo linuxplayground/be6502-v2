@@ -475,7 +475,7 @@ reg_3: .byte $80                ; r3 color start 0x2000
 reg_4: .byte $01                ; r4 pattern generator start at 0x800
 reg_5: .byte $20                ; r5 Sprite attriutes start at 0x1000
 reg_6: .byte $00                ; r6 Sprite pattern table at 0x0000
-reg_7: .byte $E4                ; r7 Set background and forground color (white on dark blue)
+reg_7: .byte $6E                ; r7 Set forground and background color (dark red on white)
 vdp_inits_end:
 
 patterns:

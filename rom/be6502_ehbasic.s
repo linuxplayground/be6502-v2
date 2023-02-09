@@ -10,6 +10,7 @@
         .include "xmodem.inc"
         .include "wozmon.inc"
         .include "vdp.inc"
+        .include "vdp_macros.inc"
 
         .export menu
 
@@ -46,6 +47,7 @@ cold_boot:
         txs
 
         jsr _vdp_reset
+        vdp_set_text_color $06, $0f
         jsr _con_init
         jsr _acia_init
         jsr _kbd_init
