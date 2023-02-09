@@ -17,6 +17,7 @@
         .export _vdp_console_newline
         .export _vdp_console_backspace
         .export _vdp_write_reg
+        .export _vdp_irq
 
 VDP_SPRITE_PATTERN_TABLE    = 0
 VDP_PATTERN_TABLE           = $800
@@ -47,6 +48,7 @@ _vdp_reset:
         jsr vdp_init_colors
         stz vdp_x
         stz vdp_y
+        stz vdp_vsync_ticks
 
         lda #VDP_TEXT_MODE_WIDTH
         sta vdp_con_width
@@ -419,6 +421,45 @@ vdp_init_colors:
         bne :-
         rts
 
+;=============================================================================
+; Handle VSYNC trigger
+;=============================================================================
+_vdp_irq:
+        inc vdp_vsync_ticks
+        lda vdp_vsync_ticks
+        cmp #60
+        bne :+
+        stz vdp_vsync_ticks
+:       lda vdp_con_mode
+        cmp #VDP_TEXT_MODE
+        bne :+
+        jsr vdp_do_cursor
+:       rts
+
+;=============================================================================
+; blink the cursor in text mode only.
+;=============================================================================
+vdp_do_cursor:
+        lda vdp_vsync_ticks
+        beq @do_cursor
+        cmp #30
+        beq @do_cursor
+        bra @return
+@do_cursor:
+        vdp_vdp_xy_to_ptr
+        vdp_ptr_to_vram_write_addr
+        lda vdp_vsync_ticks
+        beq @underline
+        lda #' '
+        sta VDP_VRAM
+        bra @return
+@underline:
+        lda #'_'
+        sta VDP_VRAM
+        ;fall through
+@return:
+        vdp_delay_slow
+        rts
 ;=============================================================================
 ;     DATA
 ;=============================================================================

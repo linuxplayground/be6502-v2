@@ -26,6 +26,7 @@
         .exportzp vdp_cur
         .exportzp vdp_con_mode
         .exportzp vdp_con_width
+        .exportzp vdp_vsync_ticks
         .exportzp vgm_data
         .exportzp vgm_temp
 ; ehbasic
@@ -174,6 +175,7 @@ vdp_ptr:                .res 2     ; vdp
 vdp_cur:                .res 2     ; vdp
 vdp_con_mode:           .res 1     ; vdp
 vdp_con_width:          .res 1     ; vdp
+vdp_vsync_ticks:        .res 1     ; vdp
 vgm_data:               .res 2     ; audio
 vgm_temp:               .res 2     ; audio
 

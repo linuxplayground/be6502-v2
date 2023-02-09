@@ -12,6 +12,11 @@
         .include "vdp.inc"
 
         .export menu
+
+        .import __TMS_START__
+VDP_VRAM                = __TMS_START__ + $00   ; TMS Mode 0
+VDP_REG                 = __TMS_START__ + $01   ; TMS Mode 1
+
         .import __ACIA_START__
 ACIA_COMMAND = __ACIA_START__ + $02
 
@@ -102,23 +107,30 @@ new_line:
 
 nmi:
         rti
+
 irq:
         pha
         phx
         phy
-        
+@kbd_irq:
+        bit VIA_IFR
+        bpl @acia_irq
+        jsr _kbd_isr
+        bra @exit_irq
+@acia_irq:
         bit ACIA_STATUS
-        bpl @kbd_irq
+        bpl @vdp_irq
         jsr _acia_read_byte
         ldx con_w_idx
         sta con_buf,x
         inc con_w_idx
-        jmp @exit_irq
-@kbd_irq:
-        bit VIA_IFR
-        bpl @usr_irq
-        jsr _kbd_isr
-        jmp @exit_irq
+        bra @exit_irq
+@vdp_irq:
+        lda VDP_REG
+        and #$80
+        beq @usr_irq
+        jsr _vdp_irq
+        bra @exit_irq
 @usr_irq:
         lda usr_irq + 1
         beq @exit_irq

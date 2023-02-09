@@ -60,3 +60,13 @@
         lda #32
         sta vdp_con_width
 .endmacro
+
+.macro vdp_con_text_mode
+        lda #$F0
+        ldx #$01
+        jsr _vdp_write_reg
+        lda #0
+        sta vdp_con_mode
+        lda #40
+        sta vdp_con_width
+.endmacro
