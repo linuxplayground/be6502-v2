@@ -12,4 +12,6 @@
         .import _vdp_console_newline
         .import _vdp_console_backspace
         .import _vdp_write_reg
+        .import _vdp_disable_interrupts
+        .import _vdp_enable_interrupts
         .import _vdp_irq

@@ -21,6 +21,8 @@
         .forceimport _syscall__vdp_console_newline
         .forceimport _syscall__vdp_console_backspace
         .forceimport _syscall__vdp_write_reg
+        .forceimport _syscall__vdp_enable_interrupts
+        .forceimport _syscall__vdp_disable_interrupts
 
         ; audio
         .forceimport _syscall__psg_init

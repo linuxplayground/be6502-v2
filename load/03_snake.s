@@ -100,12 +100,7 @@ entry:
         ; switch to graphics mode
         vdp_con_g1_mode
         ; disable interrupts
-        lda #$C0
-        sta VDP_REG
-        vdp_delay_fast
-        lda #$81
-        sta VDP_REG
-        vdp_delay_fast
+        jsr _vdp_disable_interrupts
         
         vdp_set_text_color $0e, $0b
 

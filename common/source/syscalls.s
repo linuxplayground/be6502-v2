@@ -27,6 +27,8 @@
         .export _syscall__vdp_console_newline
         .export _syscall__vdp_console_backspace
         .export _syscall__vdp_write_reg
+        .export _syscall__vdp_disable_interrupts
+        .export _syscall__vdp_enable_interrupts
         ;audio
         .export _syscall__psg_init
         .export _syscall__play_vgm_data
@@ -67,6 +69,8 @@ _syscall__vdp_console_out:              .word _vdp_console_out
 _syscall__vdp_console_newline:          .word _vdp_console_newline
 _syscall__vdp_console_backspace:        .word _vdp_console_backspace
 _syscall__vdp_write_reg:                .word _vdp_write_reg
+_syscall__vdp_enable_interrupts:        .word _vdp_enable_interrupts
+_syscall__vdp_disable_interrupts:       .word _vdp_disable_interrupts
 ;audio
 _syscall__psg_init:                     .word _psg_init
 _syscall__play_vgm_data:                .word _play_vgm_data

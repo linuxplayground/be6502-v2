@@ -17,6 +17,8 @@
         .export _vdp_console_newline
         .export _vdp_console_backspace
         .export _vdp_write_reg
+        .export _vdp_disable_interrupts
+        .export _vdp_enable_interrupts
         .export _vdp_irq
 
 VDP_SPRITE_PATTERN_TABLE    = 0
@@ -345,6 +347,36 @@ scroll_buffer_out:
         iny
         cpy vdp_con_width
         bne :-
+        rts
+
+; -----------------------------------------------------------------------------
+; Disable Interrupts
+; -----------------------------------------------------------------------------
+_vdp_disable_interrupts:
+        ldx #$01
+        lda vdp_con_mode
+        cmp #VDP_TEXT_MODE
+        beq :+
+        lda #$C0
+        jsr _vdp_write_reg
+        rts
+:       lda #$D0
+        jsr _vdp_write_reg
+        rts
+
+; -----------------------------------------------------------------------------
+; Enable Interrupts
+; -----------------------------------------------------------------------------
+_vdp_enable_interrupts:
+        ldx #$01
+        lda vdp_con_mode
+        cmp #VDP_TEXT_MODE
+        beq :+
+        lda #$C0
+        jsr _vdp_write_reg
+        rts
+:       lda #$F0
+        jsr _vdp_write_reg
         rts
 
 ; -----------------------------------------------------------------------------

@@ -23,6 +23,8 @@
         .export _vdp_console_newline
         .export _vdp_console_backspace
         .export _vdp_write_reg
+        .export _vdp_disable_interrupts
+        .export _vdp_enable_interrupts
         ;audio
         .export _psg_init
         .export _play_vgm_data
@@ -64,6 +66,8 @@ _vdp_console_out:               jmp (_syscall__vdp_console_out)
 _vdp_console_newline:           jmp (_syscall__vdp_console_newline)
 _vdp_console_backspace:         jmp (_syscall__vdp_console_backspace)
 _vdp_write_reg:                 jmp (_syscall__vdp_write_reg)
+_vdp_disable_interrupts:        jmp (_syscall__vdp_disable_interrupts)
+_vdp_enable_interrupts:         jmp (_syscall__vdp_enable_interrupts)
 ;audio
 _psg_init:                      jmp (_syscall__psg_init)
 _play_vgm_data:                 jmp (_syscall__play_vgm_data)
