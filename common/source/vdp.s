@@ -56,7 +56,6 @@ _vdp_reset:
         sta vdp_con_mode
         rts
 
-
 _vdp_home:
         stz vdp_x
         stz vdp_y

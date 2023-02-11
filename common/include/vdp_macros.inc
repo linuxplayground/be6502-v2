@@ -5,7 +5,7 @@
 .endmacro
 
 .macro vdp_delay_fast
-        .repeat 4
+        .repeat 16
         nop
         .endrepeat
 .endmacro

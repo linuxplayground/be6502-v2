@@ -99,8 +99,16 @@ entry:
 
         ; switch to graphics mode
         vdp_con_g1_mode
-        ; audio
+        ; disable interrupts
+        lda #$C0
+        sta VDP_REG
+        vdp_delay_fast
+        lda #$81
+        sta VDP_REG
+        vdp_delay_fast
         
+        vdp_set_text_color $0e, $0b
+
         ; setup game colours
         jsr setup_colors
         lda #15                         ; start snake in middle of screen
@@ -188,6 +196,7 @@ game_over:
 @restart:
         jmp entry
 @exit_game:
+        vdp_con_text_mode
         jmp exit_game
 ;------------------------------------------------------------------------------
 ; Checks user input buffer for a keypress.  Looks to see which direction going

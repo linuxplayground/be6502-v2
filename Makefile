@@ -56,7 +56,8 @@ LOAD_SOURCE_FILES= 01_xmodem_test.s \
 			02_vdp_lib_dev.s \
 			03_snake.s \
 			04_bcd.s \
-			05_audio.s
+			05_audio.s \
+			06_tetris.s
 LOAD_OBJECTS=$(LOAD_SOURCE_FILES:%.s=$(LOAD_BUILD)/%.o)
 LOAD_RAW=$(LOAD_SOURCE_FILES:%.s=$(LOAD_BUILD)/%.raw)
 LOAD_BINARIES=$(LOAD_SOURCE_FILES:%.s=$(LOAD_BUILD)/%.bin)
