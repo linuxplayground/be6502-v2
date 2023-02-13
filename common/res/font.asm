@@ -134,14 +134,15 @@
         .byte $00,$38,$FE,$FF,$FF,$FE,$38,$00 ; 83 - snake head right
         .byte $00,$00,$FF,$FF,$FF,$FF,$00,$00 ; 84 - snake body horiz
         .byte $00,$1C,$7F,$FF,$FF,$7F,$1C,$00 ; 85 - snake head left
-        .byte $3C,$3C,$3F,$3F,$3F,$3F,$00,$00 ; 86 - bl corner
-        .byte $00,$00,$3F,$3F,$3F,$3F,$3C,$3C ; 87 - tl corner
-        .byte $00,$00,$FC,$FC,$FC,$FC,$3C,$3C ; 88 - tr corner
-        .byte $3C,$3C,$FC,$FC,$FC,$FC,$00,$00 ; 89 - br corner
+        .byte $3C,$3C,$3F,$3F,$3F,$1F,$00,$00 ; 86 - bl corner
+        .byte $00,$00,$1F,$3F,$3F,$3F,$3C,$3C ; 87 - tl corner
+        .byte $00,$00,$F8,$FC,$FC,$FC,$3C,$3C ; 88 - tr corner
+        .byte $3C,$3C,$FC,$FC,$FC,$F8,$00,$00 ; 89 - br corner
         .byte $18,$24,$42,$81,$81,$42,$24,$18 ; 8a - circle
-        .byte $00,$00,$00,$00,$00,$00,$00,$00 ; 8b -
-        .byte $00,$00,$00,$00,$00,$00,$00,$00 ; 8c -
-        .byte $00,$00,$00,$00,$00,$00,$00,$00 ; 8d -
-        .byte $00,$00,$00,$00,$00,$00,$00,$00 ; 8e -
+        .byte $3C,$3C,$FC,$F8,$F8,$FC,$3C,$3C ; 8b - l T
+        .byte $3C,$3C,$3F,$1F,$1F,$3F,$3C,$3C ; 8c - r T
+        .byte $00,$00,$E7,$FF,$FF,$FF,$3C,$3C ; 8d - t T
+        .byte $3C,$3C,$FF,$FF,$FF,$E7,$00,$00 ; 8e - b T
         .byte $00,$00,$00,$00,$00,$00,$00,$00 ; 8f -
         .byte $04,$68,$37,$7F,$7F,$7F,$7F,$3E ; 90 - apple
+        .byte $7E,$C3,$81,$99,$99,$81,$C3,$7E ; 91 - tetris block

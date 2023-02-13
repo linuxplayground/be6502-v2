@@ -67,7 +67,7 @@ _kbd_isr:
         lda kbd_flags
         and #(KBD_R_FLAG)       ; check if we are releasing a key
         beq @read_key           ; otherwise read the key
-
+        stz kbd_scankey         ; zero out scankey on release.
         lda kbd_flags           ; flip the releasing bit
         eor #(KBD_R_FLAG)
         sta kbd_flags
@@ -106,7 +106,7 @@ _kbd_isr:
         beq @break
         cmp #$58                ; capslock
         beq @exit
-
+        sta kbd_scankey         ; scan code saved for externals that need direct keyboard access
         tax
         lda kbd_flags
         and #(KBD_S_FLAG)       ; check if shif it currently down

@@ -2,6 +2,7 @@
         .globalzp con_r_idx
         .globalzp con_w_idx
         .globalzp kbd_flags
+        .globalzp kbd_scankey
         .globalzp str_ptr
         .globalzp tmp1
         .globalzp crc
