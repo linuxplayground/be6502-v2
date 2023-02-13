@@ -16,8 +16,8 @@ K_RIGHT                 = $A2 ; $74
 K_DOWN                  = $A4 ; $72
 K_A                     = 'a' ; $1C
 K_D                     = 'd' ; $23
-K_SPACE                 = $20 ; $29
-K_RESET                 = $0D ; $5A   ; ENTER
+K_SPACE                 = ' ' ; $29
+K_RETURN                = $0D ; $5A   ; ENTER
 K_ESCAPE                = $1b ; $76   ; ESCAPE
 FALL_DELAY              = 30
 GET_INPUT_DELAY         = $FE
@@ -207,8 +207,6 @@ get_key_inputs:
 
 :       cmp #K_DOWN
         bne :++
-        lda #1
-        sta fall_speed
         jsr erase_block
         inc block_y_position
         jsr check_space
@@ -216,8 +214,10 @@ get_key_inputs:
         dec block_y_position
 :       jmp @return
 
-:       cmp #K_SPACE
+:       cmp #K_RETURN
         bne :+
+        lda #1
+        sta fall_speed
         jmp @return
 
 :       cmp #K_ESCAPE
