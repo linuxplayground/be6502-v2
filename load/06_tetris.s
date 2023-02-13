@@ -64,6 +64,8 @@ startgame_loop:
         bcc startgame_loop
 
         ; test
+        jsr get_random
+        sta next_block_id
         jsr new_block
 
 game_loop:
@@ -79,7 +81,10 @@ game_loop:
         dec delay_counter               ; slow the game down
         bne @paint                      ; not zero - paint
         jsr fall                        ; delay loop is zero - so fall block
-        lda fall_speed                  ; reset delay loop counter
+        beq :+                          ; did we hit the bottom?
+        jsr new_block                   ; why yes we did.
+        bne @exit
+:       lda fall_speed                  ; reset delay loop counter
         sta delay_counter               ; store 
         bra @paint                      ; paint
 @reset_input_delay:
@@ -109,23 +114,46 @@ prng:
 
 ; selects a new block and places it at the top of the screen
 new_block:
-        lda #10
-        sta block_x_position
-        lda #01
-        sta block_y_position
         lda #FALL_DELAY
-        sta fall_speed
         sta delay_counter
-        
-@get_random:
+        sta fall_speed
+        ldx #21
+        ldy #3
+        stx block_x_position
+        sty block_y_position
+        lda next_block_id
+        pha
+        jsr select_block
+        jsr erase_block
+        jsr get_random
+        sta next_block_id
+        lda next_block_id
+        jsr select_block
+        jsr print_block
+
+        ldx #10
+        ldy #1
+        stx block_x_position
+        sty block_y_position
+        pla
+        sta current_block_id
+        jsr select_block
+        jsr check_space
+        bne :+
+        jsr print_block
+        lda #0
+        rts
+:       jsr print_block
+        lda #1
+        rts
+
+get_random:
         jsr prng
         and #$07                ; keep only bottom 3 bits (7)
         cmp #$07                ; is it 7, yes then try again.
         bne :+
-        jmp @get_random
-:       jsr select_block
-        jsr print_block
-        rts
+        jmp get_random
+:       rts
 
 get_key_inputs:
         lda pressed_key
@@ -209,9 +237,12 @@ fall:
         beq @return
         dec block_y_position
         jsr print_block
-        jsr new_block
+        jsr print_block
+        lda #1
+        rts
 @return:
         jsr print_block
+        lda #0
         rts
 
 ; set A register with block ID before calling
@@ -523,6 +554,7 @@ pause_flag:             .byte 0
 seed:                   .byte $c3
 input_delay:            .byte 0
 pressed_key:            .byte 0
+next_block_id:          .byte 0
 
         .rodata
 block_frame_start:
