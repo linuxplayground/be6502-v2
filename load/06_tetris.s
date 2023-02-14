@@ -4,6 +4,7 @@
         .include "sysram.inc"
         .include "vdp.inc"
         .include "vdp_macros.inc"
+        .include "wozmon.inc"
 
         .import __TMS_START__
 VDP_VRAM                = __TMS_START__ + $00   ; TMS Mode 0
@@ -21,10 +22,11 @@ K_RETURN                = $0D ; $5A   ; ENTER
 K_ESCAPE                = $1b ; $76   ; ESCAPE
 FALL_DELAY              = 30
 GET_INPUT_DELAY         = $FE
-ZP_START                = $E0
-scr_ptr = ZP_START
 
-vidram = $6000
+scr_ptr                 = $E0
+scr_ptr2                = $E2
+
+vidram = $300
 .macro print px, py, addr
         lda #px
         sta block_x_position
@@ -57,6 +59,7 @@ vidram = $6000
         lda #FALL_DELAY
         sta delay_counter
         sta fall_speed
+     
 
 startgame_loop:
         inc seed
@@ -81,11 +84,18 @@ game_loop:
         dec delay_counter               ; slow the game down
         bne @paint                      ; not zero - paint
         jsr fall                        ; delay loop is zero - so fall block
-        beq :+                          ; did we hit the bottom?
-        jsr new_block                   ; why yes we did.
+        beq @reset_delay_counter        ; did we hit the bottom?
+        jsr check_lines                 ; bottom hit - check if we made a line
+        lda lines_made                  ; did we make a line?
+        beq @new_block
+        ; we need to delete the made line.
+        jsr remove_lines                ; clear out any made lines then fall through
+@new_block:
+        jsr new_block                   ; did not make a line
         bne @exit
-:       lda fall_speed                  ; reset delay loop counter
-        sta delay_counter               ; store 
+@reset_delay_counter:
+        lda fall_speed                  ; reset delay loop counter
+        sta delay_counter               ; store
         bra @paint                      ; paint
 @reset_input_delay:
         lda GET_INPUT_DELAY             ; input delay can be reset now
@@ -237,12 +247,124 @@ fall:
         beq @return
         dec block_y_position
         jsr print_block
-        jsr print_block
         lda #1
         rts
 @return:
         jsr print_block
         lda #0
+        rts
+
+; check if a line is filled
+; called after fall returns a 1
+; before new block
+check_lines:
+        stz lines_made
+        lda #$01                ; the current row is one below the top.
+        sta current_row
+        ldx #7
+        ldy #1
+        stx block_x_position
+        sty block_y_position
+        jsr set_vidram_position
+        ldx #0
+@read_start:
+        ldy #0
+@read_loop:
+        lda (scr_ptr),y
+        cmp #$20
+        beq @next_row
+        iny
+        cpy #12
+        bne @read_loop
+        ; whole row checked and no spaces, we made a line
+        ldy lines_made
+        lda current_row
+        sta line_row_numbers, y
+        ; do we want to save to a buffer so we can flash it?
+        ; not for now, but maybe later.
+        inc lines_made
+        lda lines_made
+        cmp #4
+        beq @read_done
+@next_row:
+        inc current_row
+        lda current_row
+        cmp #23
+        beq @read_done
+        jsr down_row
+        jmp @read_start
+@read_done:
+        lda lines_made
+        rts
+
+; remove lines made from play area and then move all lines down
+remove_lines:
+        lda #$00
+        sta current_line_index
+set_pointers:
+        ldx current_line_index
+        lda line_row_numbers,x
+        tay
+        jsr set_line_pointers
+        jsr move_line_data
+        inc current_line_index
+        lda current_line_index
+        cmp lines_made
+        bne set_pointers
+        rts
+
+; sets screen memory pointers to made line and the line above it
+; so that data can be moved.
+; set y to the row to point to before calling this.
+set_line_pointers:
+        ldx #7
+        dey             ; go up one row
+        stx block_x_position
+        sty block_y_position
+        jsr set_vidram_position
+        lda scr_ptr
+        sta scr_ptr2
+        lda scr_ptr + 1
+        sta scr_ptr2 + 1
+        jsr down_row
+        rts
+
+; move data down
+move_line_data:
+        ldy current_line_index
+        lda line_row_numbers,y
+        tax
+@start_loop:
+        ldy #0
+@loop:
+        lda (scr_ptr2),y
+        sta (scr_ptr),y
+        iny
+        cpy #12
+        bne @loop
+        dex
+        beq @done_moving
+        txa
+        tay
+        pha
+        jsr set_line_pointers
+        pla
+        tax
+        jmp @start_loop
+@done_moving:
+        ldx #7
+        ldy #1
+        stx block_x_position
+        sty block_y_position
+        jsr set_vidram_position
+        ldy #0
+        lda #$20
+@clear_line_loop:
+        sta (scr_ptr),y
+        iny
+        cpy #12
+        bne @clear_line_loop
+@exit:
         rts
 
 ; set A register with block ID before calling
@@ -404,7 +526,7 @@ check_space_loop:
         jsr down_row
         ldy #$00
         jmp check_space_loop
-        
+
 ; adjust scr_ptr to point to row exactly below it
 down_row:
         lda scr_ptr
@@ -417,7 +539,7 @@ down_row:
 
 ; paint vidram
 paint_vidram:
-@do:        
+@do:
         lda #<VDP_NAME_TABLE
         sta vdp_ptr
         lda #>VDP_NAME_TABLE
@@ -471,7 +593,7 @@ draw_map:
         lda vdp_ptr
         adc #$6
         sta vdp_ptr
-        
+
         lda #<map
         sta scr_ptr
         lda #>map
@@ -555,6 +677,10 @@ seed:                   .byte $c3
 input_delay:            .byte 0
 pressed_key:            .byte 0
 next_block_id:          .byte 0
+lines_made:             .byte 0
+current_row:            .byte 0
+line_row_numbers:       .byte 0,0,0,0
+current_line_index:     .byte 0
 
         .rodata
 block_frame_start:
@@ -676,9 +802,9 @@ b6f3:           ; T 3           =18
         .byte $20,$20,$20,$20
 
 map:    ; 21 x 24
-        ;       0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20
+        ;       6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26
         .byte $87,$84,$84,$84,$84,$84,$84,$84,$84,$84,$84,$84,$84,$8d,$84,$84,$84,$84,$84,$84,$88 ;  0
-        .byte $81,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$81,$20,$20,$20,$20,$20,$20,$81 ;  1     
+        .byte $81,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$81,$20,$20,$20,$20,$20,$20,$81 ;  1
         .byte $81,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$81,$20,$20,$20,$20,$20,$20,$81 ;  2
         .byte $81,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$81,$20,$20,$20,$20,$20,$20,$81 ;  3
         .byte $81,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$81,$20,$20,$20,$20,$20,$20,$81 ;  4
