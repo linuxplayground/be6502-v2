@@ -4,7 +4,7 @@
         .include "sysram.inc"
         .include "vdp.inc"
         .include "vdp_macros.inc"
-        .include "wozmon.inc"
+        .include "audiolib.inc"
 
         .import __TMS_START__
 VDP_VRAM                = __TMS_START__ + $00   ; TMS Mode 0
@@ -20,7 +20,6 @@ K_D                     = 'd' ; $23
 K_SPACE                 = ' ' ; $29
 K_RETURN                = $0D ; $5A   ; ENTER
 K_ESCAPE                = $1b ; $76   ; ESCAPE
-FALL_DELAY              = 30
 GET_INPUT_DELAY         = $FE
 
 scr_ptr                 = $E0   ; 2 bytes
@@ -43,6 +42,11 @@ vidram = $300
 .endmacro
 
         .code
+new_game:
+        jsr _psg_init
+        lda #<snd_init
+        ldx #>snd_init
+        jsr _play_vgm_data
 
         jsr _vdp_reset
         vdp_con_g1_mode
@@ -51,25 +55,30 @@ vidram = $300
         jsr clear_vidram
         jsr draw_map
         print 20, 1, str_next
-        print 20, 9, str_level
+        ; print 20, 9, str_level
         print 20, 14, str_score
-        print 20, 19, str_lives
+        ; print 20, 19, str_lives
+        print 8, 10, str_start
+        jsr paint_vidram
 
         lda #GET_INPUT_DELAY
         sta input_delay
+        lda #30
+        sta fall_delay
 
-        lda #FALL_DELAY
+        lda fall_delay
         sta delay_counter
         sta fall_speed
         
         stz score
         stz score_h
+        stz score_multiplier
 
 startgame_loop:
         inc seed
         jsr _con_in
         bcc startgame_loop
-
+        print 8, 10, str_clear_start
         ; test
         jsr get_random
         sta next_block_id
@@ -118,6 +127,18 @@ game_loop:
 @exit:
         jmp exit                        ; exit game.
 exit:
+        lda #<snd_crash
+        ldx #>snd_crash
+        jsr _play_vgm_data
+        print 9, 10, str_game_over
+        jsr paint_vidram
+:       jsr _con_in
+        bcc :-
+        cmp #$20
+        bne :+
+        jmp new_game
+:       cmp #$1b
+        bne :-
         rts
 
 ; update score and bcdout
@@ -141,6 +162,22 @@ update_score:
         jsr bcd_out_l
         lda score
         jsr bcd_out
+        inc score_multiplier
+        lda score_multiplier
+        cmp #5
+        bne :+
+        lda #<snd_lvl_up
+        ldx #>snd_lvl_up
+        jsr _play_vgm_data
+        stz score_multiplier
+        lda fall_delay
+        beq :+                  ; don't decrement fall delay below 0
+        dec fall_delay          ; increase speed by 1 every 5 lines.
+        rts
+
+:       lda #<snd_eat
+        ldx #>snd_eat
+        jsr _play_vgm_data
         rts
 
 ;------------------------------------------------------------------------------
@@ -179,7 +216,7 @@ prng:
 
 ; selects a new block and places it at the top of the screen
 new_block:
-        lda #FALL_DELAY
+        lda fall_delay
         sta delay_counter
         sta fall_speed
         ldx #21
@@ -727,6 +764,7 @@ first_frame:            .byte 0
 last_frame:             .byte 0
 delay_counter:          .byte 0
 fall_speed:             .byte 0
+fall_delay:             .byte 0
 pause_flag:             .byte 0
 seed:                   .byte $c3
 input_delay:            .byte 0
@@ -736,6 +774,7 @@ lines_made:             .byte 0
 current_row:            .byte 0
 line_row_numbers:       .byte 0,0,0,0
 current_line_index:     .byte 0
+score_multiplier:       .byte 0
 
         .rodata
 block_frame_start:
@@ -899,3 +938,37 @@ str_score:
         .asciiz "SCORE"
 str_lives:
         .asciiz "LIVES"
+str_game_over:
+        .asciiz "GAME OVER!"
+str_start:
+        .asciiz "PRESS SPACE"
+str_clear_start:
+        .asciiz "           "
+
+snd_init:
+        .byte $a0, $07, $2E     ; mixer enable channel A (tone) and channel B (noise)
+        .byte $66
+snd_eat:
+        .byte $a0, $08, $1f     ; channel A (tone) volume controlled by envelope
+        .byte $a0, $0c, $04     ; envelope frequency, channel B
+        .byte $a0, $0d, $00     ; envelope shape to \_
+        .byte $a0, $00, $80     ; channel A (tone) fine frequency
+        .byte $a0, $01, $00     ; channel A (tone) course frequency
+        .byte $66
+snd_crash:
+        .byte $a0, $09, $1F     ; channel B (noise) volume controlled by envelope
+        .byte $a0, $08, $00     ; channel A (tone) volume OFF
+        .byte $a0, $0b, $a0     ; set envelope fine duration
+        .byte $a0, $0c, $40     ; set envelope course duration
+        .byte $a0, $0d, $00     ; set envelope shape to   \__ 
+        .byte $a0, $06, $0f     ; Set noise duration
+        .byte $66
+snd_lvl_up:
+        .byte $a0, $08, $0f     ; channel A full volume
+        .byte $a0, $01, $00     ; channel A (tone) course frequency
+        .byte $a0, $00, $FF     ; channel A (tone) fine frequency (lower pitch)
+        .byte $61, $2d, $08     ; wait 
+        .byte $a0, $00, $80     ; channel A (tone) fine frequency (higher pitch)
+        .byte $61, $2d, $0f     ; wait 
+        .byte $a0, $08, $00     ; channel A zero volume
+        .byte $66
