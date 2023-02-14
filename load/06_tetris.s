@@ -23,8 +23,10 @@ K_ESCAPE                = $1b ; $76   ; ESCAPE
 FALL_DELAY              = 30
 GET_INPUT_DELAY         = $FE
 
-scr_ptr                 = $E0
-scr_ptr2                = $E2
+scr_ptr                 = $E0   ; 2 bytes
+scr_ptr2                = $E2   ; 2 bytes
+score                   = $E4
+score_h                 = $E5
 
 vidram = $300
 .macro print px, py, addr
@@ -59,7 +61,9 @@ vidram = $300
         lda #FALL_DELAY
         sta delay_counter
         sta fall_speed
-     
+        
+        stz score
+        stz score_h
 
 startgame_loop:
         inc seed
@@ -72,7 +76,14 @@ startgame_loop:
         jsr new_block
 
 game_loop:
-        jsr _con_in                     ; check for input
+        lda pause_flag
+        beq :++
+:       jsr _con_in
+        bcc :-
+        lda pause_flag
+        eor #%00000001
+        sta pause_flag
+:       jsr _con_in                     ; check for input
         bcc @fall                       ; no input - fall the block
         sta pressed_key                 ; save pressed key
 @key_pressed:
@@ -88,6 +99,7 @@ game_loop:
         jsr check_lines                 ; bottom hit - check if we made a line
         lda lines_made                  ; did we make a line?
         beq @new_block
+        jsr update_score                ; increment score by lines made
         ; we need to delete the made line.
         jsr remove_lines                ; clear out any made lines then fall through
 @new_block:
@@ -107,6 +119,49 @@ game_loop:
         jmp exit                        ; exit game.
 exit:
         rts
+
+; update score and bcdout
+; A contains the amount to increase score by
+update_score:
+        sed
+        clc
+        adc score
+        sta score
+        lda #0
+        adc score_h
+        sta score_h
+        cld
+
+        ldx #21
+        ldy #15
+        stx block_x_position
+        sty block_y_position
+        jsr set_vidram_position
+        lda score_h
+        jsr bcd_out_l
+        lda score
+        jsr bcd_out
+        rts
+
+;------------------------------------------------------------------------------
+; Print 1 byte BCD value
+;------------------------------------------------------------------------------
+bcd_out:
+        ldy #0
+        pha
+        .repeat 4
+        lsr
+        .endrepeat
+        ora #'0'
+        sta (scr_ptr),y
+        pla
+bcd_out_l:
+        ldy #1
+        and #$0f
+        ora #'0'
+        sta (scr_ptr),y
+        rts
+
 ;------------------------------------------------------------------------------
 ; Generate a random number
 ; Result in A
@@ -169,7 +224,7 @@ get_key_inputs:
         lda pressed_key
         bne :+          ; a key is held down.
         jmp @no_key
-:       cmp #K_SPACE
+:       cmp #K_RETURN
         bne :+
         lda pause_flag
         eor #%00000001
@@ -224,7 +279,7 @@ get_key_inputs:
         dec block_y_position
 :       jmp @return
 
-:       cmp #K_RETURN
+:       cmp #K_SPACE
         bne :+
         lda #1
         sta fall_speed
