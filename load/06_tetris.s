@@ -26,6 +26,8 @@ scr_ptr                 = $E0   ; 2 bytes
 scr_ptr2                = $E2   ; 2 bytes
 score                   = $E4
 score_h                 = $E5
+level                   = $E6
+level_h                 = $E7
 
 vidram = $300
 .macro print px, py, addr
@@ -55,9 +57,9 @@ new_game:
         jsr clear_vidram
         jsr draw_map
         print 20, 1, str_next
-        ; print 20, 9, str_level
+        print 20, 9, str_lines
         print 20, 14, str_score
-        ; print 20, 19, str_lives
+        print 20, 19, str_level
         print 8, 10, str_start
         jsr paint_vidram
 
@@ -65,15 +67,17 @@ new_game:
         sta input_delay
         lda #30
         sta fall_delay
-
-        lda fall_delay
         sta delay_counter
         sta fall_speed
         
         stz score
         stz score_h
-        stz score_multiplier
-
+        stz lines_per_level
+        stz level_h
+        lda #1
+        sta level
+        jsr show_level
+        jsr show_lines_per_level
 startgame_loop:
         inc seed
         jsr _con_in
@@ -154,7 +158,7 @@ update_score:
         cld
 
         ldx #21
-        ldy #15
+        ldy #16
         stx block_x_position
         sty block_y_position
         jsr set_vidram_position
@@ -162,24 +166,58 @@ update_score:
         jsr bcd_out_l
         lda score
         jsr bcd_out
-        inc score_multiplier
-        lda score_multiplier
-        cmp #5
-        bne :+
+        rts
+
+; process level
+process_level_line:
+        inc lines_per_level
+        lda lines_per_level
+        cmp #10
+        beq update_level
+        lda #<snd_eat
+        ldx #>snd_eat
+        jsr _play_vgm_data
+        lda fall_speed
+        sta delay_counter
+        jmp show_lines_per_level
+update_level:
+        clc
+        sed
+        lda #1
+        adc level
+        sta level
+        lda #0
+        adc level_h
+        sta level_h
+        cld
         lda #<snd_lvl_up
         ldx #>snd_lvl_up
         jsr _play_vgm_data
-        stz score_multiplier
+        stz lines_per_level
         lda fall_delay
-        beq :+                  ; don't decrement fall delay below 0
-        dec fall_delay          ; increase speed by 1 every 5 lines.
-        rts
+        beq show_level
+        sbc #5
+        sta fall_delay
+show_level:
+        ldx #21
+        ldy #21
+        stx block_x_position
+        sty block_y_position
+        jsr set_vidram_position
+        lda level_h
+        jsr bcd_out_l
+        lda level
+        jsr bcd_out
+show_lines_per_level:
+        ldx #21
+        ldy #11
+        stx block_x_position
+        sty block_y_position
+        jsr set_vidram_position
+        lda lines_per_level
+        jsr bcd_out_l
 
-:       lda #<snd_eat
-        ldx #>snd_eat
-        jsr _play_vgm_data
         rts
-
 ;------------------------------------------------------------------------------
 ; Print 1 byte BCD value
 ;------------------------------------------------------------------------------
@@ -399,6 +437,7 @@ set_pointers:
         tay
         jsr set_line_pointers
         jsr move_line_data
+        jsr process_level_line
         inc current_line_index
         lda current_line_index
         cmp lines_made
@@ -774,7 +813,7 @@ lines_made:             .byte 0
 current_row:            .byte 0
 line_row_numbers:       .byte 0,0,0,0
 current_line_index:     .byte 0
-score_multiplier:       .byte 0
+lines_per_level:        .byte 0
 
         .rodata
 block_frame_start:
@@ -936,8 +975,8 @@ str_level:
         .asciiz "LEVEL"
 str_score:
         .asciiz "SCORE"
-str_lives:
-        .asciiz "LIVES"
+str_lines:
+        .asciiz "LINES"
 str_game_over:
         .asciiz "GAME OVER!"
 str_start:
