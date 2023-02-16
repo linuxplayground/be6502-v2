@@ -16,6 +16,12 @@ This project is a 6502 CPU based single board computer with the following hardwa
 
 The 65C02 and 65C22 devices are well explained in other projects and on the Ben Eater 6502 series of Youtube videos.
 
+As I write this, I realise how much of it is copied from other people.  I have tried to reference where I can.  Most of the code is my own.
+
+I developed Snake entirely on my own.
+
+I followed the tutorial for Snake on a Commodore 64 but adapted it to work with my specific graphics setup.  [https://devdef.blogspot.com/2015/02/tetris-in-6502-assembler-part-1.html](https://devdef.blogspot.com/2015/02/tetris-in-6502-assembler-part-1.html)
+
 ## Address Decoding
 
 The usual method of address decoding on a single board computer seems to be to divide the 64k addressable memory into two and share between ROM and RAM.  This is mostly the approach taken here, but rather than use a range of 74 series logic chips to manage the decoding, I have opted for a PLD. (Programmable Logic Device).
@@ -37,6 +43,8 @@ For more detail see the [Schematic](docs/Schematic_be6502_V1.1_2023-02-16.pdf)
 
 ## Software
 
+My OS is based on the work by dbuchwald [https://github.com/dbuchwald/6502](https://github.com/dbuchwald/6502)
+
 All software for this project (except for the examples in `basic`) are complied and linked using CA65 and CL65.  I have found that by using CA65 and specifically CL65 as the linker, I have been able to *not* think too much about memory addresses.
 
 The `firmware.cfg` file shows how the memory is mapped and you will see references to these lables in the code.
@@ -51,27 +59,5 @@ The simple OS included provides a simple boot menu that allows for:
 The ROM offers a range of syscalls that are programmed into a jumptable which can be accessed by user developed applications.
 
 The included Makefile will compile all the ROM libraries, the two available ROM images and all the software in the load folder.
-
-The process for running a program involves:
-
-1. powerup the computer.  The DS1813 supervisor IC will hold the reset line low for long enough to trigger a clean CPU reset.  No need to hit the reset button on this computer.
-2. Ensure you have a USB to TTL Serial adapter connected into the UART TX and RX pins.
-
-    |USB2SER ADAPTER|UART
-    |---------------|----
-    |TX             |RX
-    |RX             |TX
-    |COMMON GROUND  |GND
-    There are no hardware handshaking or flow control options.
-
-3. Open your favourite teminal emulator - I use either Hyperterminal or minicom.
-4. Press X to start XMODEM
-5. Transfer one of the binary files in the build/load/ folder.
-6. When done, you will be returned to the menu.
-7. Press R to run the program.
-
-Everything you see on the Serial terminal will also show up on the composite output display.  In my case, I am using an AVI2VGA converter to onvert the NTSC 60hz composite signal to VGA and into an LCD monitor.
-
-There are a range of screenshots in the [docs](./docs/) subfolder showing how this process works.
 
 I will leave learning how the CA65 assembler and linker works up to the reader.
