@@ -20,7 +20,7 @@ K_D                     = 'd' ; $23
 K_SPACE                 = ' ' ; $29
 K_RETURN                = $0D ; $5A   ; ENTER
 K_ESCAPE                = $1b ; $76   ; ESCAPE
-GET_INPUT_DELAY         = $FE
+GET_INPUT_DELAY         = $40
 
 scr_ptr                 = $E0   ; 2 bytes
 scr_ptr2                = $E2   ; 2 bytes
@@ -146,8 +146,13 @@ exit:
         rts
 
 ; update score and bcdout
-; A contains the amount to increase score by
+; A contains the amount to increase score by (which is given by lines_made)
 update_score:
+        cmp #4
+        bne @update
+        clc
+        adc #6                  ; you get 10 point initial bonus, not 4 when completed 4 lines at once.
+@update:
         sed
         clc
         adc score
@@ -196,7 +201,7 @@ update_level:
         stz lines_per_level
         lda fall_delay
         beq show_level
-        sbc #5
+        sbc #2                  ; game speeds up slower.
         sta fall_delay
 show_level:
         ldx #21
@@ -814,6 +819,7 @@ current_row:            .byte 0
 line_row_numbers:       .byte 0,0,0,0
 current_line_index:     .byte 0
 lines_per_level:        .byte 0
+tetris:                 .byte 0
 
         .rodata
 block_frame_start:
@@ -1008,6 +1014,6 @@ snd_lvl_up:
         .byte $a0, $00, $FF     ; channel A (tone) fine frequency (lower pitch)
         .byte $61, $2d, $08     ; wait 
         .byte $a0, $00, $80     ; channel A (tone) fine frequency (higher pitch)
-        .byte $61, $2d, $0f     ; wait 
+        .byte $61, $4d, $0f     ; wait 
         .byte $a0, $08, $00     ; channel A zero volume
         .byte $66
