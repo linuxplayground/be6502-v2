@@ -153,22 +153,27 @@ update_score:
         clc
         adc #6                  ; you get 10 point initial bonus, not 4 when completed 4 lines at once.
 @update:
+        sei
         sed
         clc
         adc score
         sta score
+        bcc :+
         lda #0
         adc score_h
         sta score_h
-        cld
+:       cld
+        cli
 
         ldx #21
         ldy #16
         stx block_x_position
         sty block_y_position
         jsr set_vidram_position
+        ldy #0
         lda score_h
         jsr bcd_out_l
+        ldy #
         lda score
         jsr bcd_out
         rts
@@ -209,6 +214,7 @@ show_level:
         stx block_x_position
         sty block_y_position
         jsr set_vidram_position
+        ldy #0
         lda level_h
         jsr bcd_out_l
         lda level
@@ -220,6 +226,7 @@ show_lines_per_level:
         sty block_y_position
         jsr set_vidram_position
         lda lines_per_level
+        ldy #0
         jsr bcd_out_l
 
         rts
@@ -227,7 +234,6 @@ show_lines_per_level:
 ; Print 1 byte BCD value
 ;------------------------------------------------------------------------------
 bcd_out:
-        ldy #0
         pha
         .repeat 4
         lsr
@@ -236,7 +242,7 @@ bcd_out:
         sta (scr_ptr),y
         pla
 bcd_out_l:
-        ldy #1
+        iny
         and #$0f
         ora #'0'
         sta (scr_ptr),y
